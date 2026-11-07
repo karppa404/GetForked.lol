@@ -32,7 +32,7 @@ The public Vercel site remains a sample-data preview until Google login and host
    npm run dev -- --hostname 127.0.0.1
    ```
 
-   Open http://127.0.0.1:3000/dashboard and choose **Developer sign-in**. Create a project and generate a room code. This bypass is limited to loopback development and cannot be enabled in production.
+   Open http://127.0.0.1:3000/dashboard. On localhost it signs in as the local developer account and shows the **Local workspace** project. This bypass is limited to loopback development and cannot be enabled in production.
 
 4. Build and open the native recorder:
 
@@ -40,7 +40,7 @@ The public Vercel site remains a sample-data preview until Google login and host
    macos/scripts/run.sh
    ```
 
-   Connect to `http://127.0.0.1:8000`, enter the room code, and approve the Mac in the dashboard. Grant macOS permissions through the app. Select a supported target app and demonstrate a task yourself. Stop, inspect and omit sensitive evidence, confirm review, then choose **Upload & Analyze**. Recordings remain local until this action.
+   Grant macOS permissions through the app. Select a supported app, press **Start Observing App Activity**, and go about your work in it; there is no task to type. Stop, inspect and omit sensitive evidence, and confirm review. Press **Connect to Local workspace** once (it calls the loopback-only `POST /v1/local/connect` at `http://127.0.0.1:8000`; no room code or approval), then **Upload & Analyze**. Recordings remain local until this action, and everything stays on localhost until you export the graph for FigJam.
 
 5. Open the session in two local browser windows, signed into the same development account. The header should say **Live updates**. Rename a workflow node in one window and see the other update through SpacetimeDB. A bounded API refresh takes over if subscriptions are unavailable.
 
