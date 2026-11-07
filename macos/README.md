@@ -55,7 +55,7 @@ Screen Recording grants (and Keychain access) must be approved again.
 | Keys | Named keys only: `return`, `enter`, `tab`, `escape`, `delete`, `forward_delete`, arrows, `home/end/page_up/page_down`, `f1`–`f12`, plus cmd/ctrl shortcuts such as `cmd+s`, `shift+cmd+z` | Kept only if Accessibility's focused app is the target |
 | Typing | One `text_input` event per burst, `key: "redacted"` | Characters are never recorded (key codes are classified without reading characters) |
 | Accessibility | role, subrole, title, description/placeholder, identifier, window title | `AXValue` (field contents) is never read. Secure fields keep role only |
-| Frames | ScreenCaptureKit stills of **only the target app's windows** on one display, JPEG at point resolution | before (latest in-memory frame ≤3 s old), after (+0.35 s), settled (+1.5 s). Unused in-memory frames are never written. Max 900 frames |
+| Frames | ScreenCaptureKit stills of **only the target app's windows** on one display, JPEG at point resolution | before (latest in-memory frame ≤3 s old), after (+0.35 s), settled (+1.5 s). Unused in-memory frames are never written. Max 300 frames (matching the API upload limit) |
 | Network | **Not captured** | No helper ships in v1. Manifest says `network_status: "not_captured"`, `network: []` |
 
 Not captured: audio, other apps, desktop, notifications, other displays. If the target moves

@@ -38,7 +38,7 @@ final class Recorder: ObservableObject {
     @Published var notice: String?
 
     let store: SessionStore
-    let maxFrames = 900
+    let maxFrames = 300
 
     private var target: NSRunningApplication?
     private var targetPID: pid_t = 0
