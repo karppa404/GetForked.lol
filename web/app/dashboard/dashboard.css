@@ -262,6 +262,8 @@ body:has(.rd-app) { background: var(--rd-bg, #fff); }
   font-family: inherit;
 }
 .rd-canvas .react-flow__background { --xy-background-pattern-color: var(--rd-line-strong); }
+/* Edge SVGs intentionally overflow a zero-width positioning container. */
+.rd-canvas .react-flow__edges svg { max-width: none; }
 .rd-canvas .react-flow__edge-text { font-size: 11px; }
 .rd-canvas .rd-gedge--candidate .react-flow__edge-path { stroke: var(--rd-accent); stroke-opacity: 0.55; stroke-dasharray: 5 4; }
 .rd-canvas .rd-gedge.is-active .react-flow__edge-path, .rd-canvas .react-flow__edge.selected .react-flow__edge-path { stroke: var(--rd-accent); stroke-opacity: 1; stroke-width: 2.25; }
