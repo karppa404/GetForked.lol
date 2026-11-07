@@ -15,6 +15,13 @@ struct RetraceApp: App {
         }
         .menuBarExtraStyle(.window)
 
+        Window("Retrace Recorder", id: WindowID.recorder) {
+            MenuContent()
+                .environmentObject(model)
+                .environmentObject(model.recorder)
+        }
+        .windowResizability(.contentSize)
+
         Window("Retrace Sessions", id: WindowID.review) {
             ReviewWindow()
                 .environmentObject(model)
@@ -38,6 +45,7 @@ struct RetraceApp: App {
 }
 
 enum WindowID {
+    static let recorder = "recorder"
     static let review = "review"
     static let pairing = "pairing"
     static let scope = "scope"
@@ -46,6 +54,7 @@ enum WindowID {
 struct MenuBarLabel: View {
     @ObservedObject var recorder: Recorder
     @Environment(\.openWindow) private var openWindow
+    @AppStorage("didShowRecorderSetup") private var didShowRecorderSetup = false
 
     var body: some View {
         Group {
@@ -54,6 +63,14 @@ struct MenuBarLabel: View {
             case .recording: Image(systemName: "record.circle.fill")
             case .paused: Image(systemName: "pause.circle")
             case .stopping: Image(systemName: "ellipsis.circle")
+            }
+        }
+        .onAppear {
+            guard !didShowRecorderSetup else { return }
+            didShowRecorderSetup = true
+            Task { @MainActor in
+                await Task.yield()
+                WindowOpener(openWindow: openWindow)(WindowID.recorder)
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .retraceOpenReview)) { _ in
