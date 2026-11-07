@@ -54,7 +54,6 @@ enum WindowID {
 struct MenuBarLabel: View {
     @ObservedObject var recorder: Recorder
     @Environment(\.openWindow) private var openWindow
-    @AppStorage("didShowRecorderSetup") private var didShowRecorderSetup = false
 
     var body: some View {
         Group {
@@ -66,8 +65,6 @@ struct MenuBarLabel: View {
             }
         }
         .onAppear {
-            guard !didShowRecorderSetup else { return }
-            didShowRecorderSetup = true
             Task { @MainActor in
                 await Task.yield()
                 WindowOpener(openWindow: openWindow)(WindowID.recorder)
