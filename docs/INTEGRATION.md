@@ -33,3 +33,11 @@ Use SpacetimeDB for shared sessions, job state, published graph records and corr
 ## Model access and budget
 
 NVIDIA access needs actual endpoint validation; sponsor-issued keys may require a sponsor/Brev gateway instead of integrate.api.nvidia.com. Configure endpoint and model identifiers via environment. Never hardcode or print secrets. Spending ceiling: $60 total; require bounded concurrency, calls, retries, token and frame budgets. Do not claim reliable dollar enforcement unless endpoint usage/prices are available. Default automated verification uses mocks; live calls require a valid configured endpoint and a bounded smoke test.
+
+## Recorder v1 additive fields
+
+The native manifest additionally carries `network_status` (`observed`, `none_observed`, or `not_captured`), `interactions[].delayed_frame_id` for settled results, and optional `redaction.omitted_frames`, `omitted_interactions`, and `window_titles_removed`. These are accepted v1 fields, not reasons to reject the manifest. No running network helper must produce `not_captured`.
+
+Interaction kinds: `click`, `double_click`, `right_click`, `other_click`, `scroll`, `key`, `text_input`, `focus_lost`, `focus_regained`. Accessibility fields: `role`, `subrole`, `title`, `label`, `identifier`, `window_title`, `secure`. `text_input` uses `key: "redacted"`; it never includes typed characters. The multipart `manifest` is a plain form field; each frame is a repeated `files` part whose filename matches the manifest's safe basename.
+
+Session creation must be safely idempotent for a repeated identical session ID and payload; a conflicting payload must fail. Repeated analyze requests while a job is active must return the active job, not start duplicate paid work.

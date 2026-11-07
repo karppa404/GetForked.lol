@@ -7,3 +7,17 @@ out/
 .DS_Store
 spacetimedb/dist/
 spacetimedb/node_modules/
+
+*.tsbuildinfo
+
+# macOS recorder build outputs
+macos/.build/
+macos/dist/
+macos/.swiftpm/
+
+# Python helpers and backend state
+__pycache__/
+*.pyc
+
+# Local release archives
+/release/

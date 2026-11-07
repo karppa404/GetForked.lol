@@ -1,0 +1,10 @@
+{
+  "name": "Retrace Graph Import",
+  "id": "retrace-graph-import-dev",
+  "api": "1.0.0",
+  "main": "dist/code.js",
+  "ui": "ui.html",
+  "editorType": ["figjam"],
+  "documentAccess": "dynamic-page",
+  "networkAccess": { "allowedDomains": ["none"], "reasoning": "Imports a local JSON file; no network access needed." }
+}
