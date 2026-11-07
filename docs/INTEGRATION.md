@@ -1,18 +1,15 @@
 # First integration contract
 
-Product name: Retrace. One Mac, one target application, one demonstrated task.
+Product name: Retrace. Localhost workspace, one selected application, ongoing observed activity. The user starts and stops capture; no task or reason is requested.
 
 ## HTTP API, version 1
 
 Base URL is configurable on every client. Development: http://127.0.0.1:8000.
 All request/response JSON uses snake_case. Evidence timestamps are milliseconds from session start, with session `started_at` an ISO 8601 UTC timestamp. Evidence IDs are UUID strings. Credentials must never be included in evidence or source.
 
-- POST /v1/pairings: authenticated browser creates an expiring, single-use pairing. Response: `{pairing_id, code, expires_at}`.
-- POST /v1/pairings/claim: recorder sends `{code, device_name}`. Response: `{claim_id, claim_secret, status:"pending"}`. Code is consumed atomically. Never return a device token from the claim itself.
-- POST /v1/pairings/{pairing_id}/approve: authenticated browser approves `{claim_id}` after showing device name.
-- POST /v1/pairings/claims/{claim_id}/poll: recorder sends `{claim_secret}`. Pending response `{status:"pending"}`; approved `{status:"approved", device_token, project_id}`. Credential is issued to only the matching claim secret.
-- POST /v1/sessions: device bearer auth, multipart `manifest` JSON string and `files` attachments. Manifest has `schema_version:1`, `id`, `project_id`, `app:{name,bundle_id,pid}`, `task`, `started_at`, `duration_ms`, `interactions:[]`, `frames:[]`, `network:[]`, `redaction:{reviewed:true}`. Response `{id,status:"uploaded"}`. Never upload without explicit local user action.
-- POST /v1/sessions/{id}/analyze: authorized browser or paired device starts bounded analysis. Response `{job_id,status}`.
+- POST /v1/local/connect: native client sends `{device_name}`. Returns `{device_token, device_id, project_id, project_name, api_base_url}` for the default developer account's `Local workspace`. Available only in local development with loopback peer and Host; remote Origin and forwarding headers are rejected. Store the token in Keychain. No room code or approval screen.
+- POST /v1/sessions: device bearer auth, multipart `manifest` JSON string and `files` attachments. Manifest has `schema_version:1`, `id`, `project_id`, `app:{name,bundle_id,pid}`, optional legacy `task`, `started_at`, `duration_ms`, `interactions:[]`, `frames:[]`, `network:[]`, `redaction:{reviewed:true}`. Response `{id,status:"uploaded"}`. Never upload without explicit local user action.
+- POST /v1/sessions/{id}/analyze: authorized browser or connected device starts bounded analysis. Response `{job_id,status}`.
 - GET /v1/sessions/{id}: authorized browser/device reads metadata and analysis.
 - GET /v1/projects: browser's projects.
 - POST /v1/projects: `{name}` creates project.
@@ -24,11 +21,13 @@ Network: `{id,timestamp_ms,method,url,status?,request_headers?,response_headers?
 
 Graph v1: `{schema_version:1,nodes:[{id,type,label,evidence_ids:[]}],edges:[{id,source,target,label,evidence_ids:[],association:"observed"|"candidate"}],network_status:"observed"|"none_observed"|"not_captured",ambiguities:[]}`. Validate evidence references and node references before publishing. Human corrections are separate records and survive agent reruns. Proposed modernization suggestions must never be labeled observed.
 
-## Auth and deployment
+## Local operation and export
 
-Google login is pending configuration. The public landing site's Sign in is deliberately a link to a blank `/dashboard`. No fake authentication. Any development-only auth backend must bind to loopback by default and reject insecure mode in hosted production. The macOS recorder only talks to the API using a paired device token, stored in Keychain.
+Run the API on `127.0.0.1:8000`, the Next.js UI on localhost, and SpacetimeDB on loopback. The dashboard uses the default local developer login (`dev@localhost`). Native one-click connection creates the same account's Local workspace. Hosted deployment and Google sign-in are outside the current product flow; legacy pairing endpoints remain server compatibility only.
 
-Use SpacetimeDB for shared sessions, job state, published graph records and corrections. Never expose private projects in public tables. A public marketing demo table can be used for placeholder/video metadata. The landing page must continue to render if the database is unconfigured or unavailable.
+Capture stays on this Mac until explicit review and Upload & Analyze. The configured Nemotron inference service receives the sanitized evidence used by analysis; localhost does not mean inference is offline. Export validated graph JSON for the editable FigJam plugin and download the applicable network graph. No network capture means `not_captured`, not an assertion that the application made no requests.
+
+Use SpacetimeDB for sessions, job state, graph records and human corrections. All private project data stays in private tables and authorized views. The landing page renders without the API; the dashboard displays connection errors instead of silently switching to sample data.
 
 ## Model access and budget
 
