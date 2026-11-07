@@ -106,6 +106,14 @@ describe("views and layout", () => {
     expect(pos.b.x).toBeLessThan(pos.c.x);
   });
 
+  it("keeps a vertical chain in one readable column", () => {
+    const pos = layeredLayout([{ id: "a" }, { id: "b" }, { id: "c" }], [{ source: "a", target: "b" }, { source: "b", target: "c" }], { direction: "TB" });
+    expect(pos.a.x).toBe(pos.b.x);
+    expect(pos.b.x).toBe(pos.c.x);
+    expect(pos.a.y).toBeLessThan(pos.b.y);
+    expect(pos.b.y).toBeLessThan(pos.c.y);
+  });
+
   it("indexes which elements cite each evidence item", () => {
     const s = PREVIEW_SESSIONS[0];
     const index = citationIndex(s.graph);
