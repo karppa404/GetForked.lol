@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset="utf-8" />
+<style>
+  body { font: 13px/1.4 Inter, system-ui, sans-serif; margin: 16px; color: #1f1f1f; }
+  h1 { font-size: 14px; margin: 0 0 8px; }
+  p { margin: 0 0 12px; color: #555; }
+  button { margin-top: 12px; padding: 6px 12px; }
+  #status { margin-top: 12px; white-space: pre-wrap; }
+  .err { color: #b3261e; }
+</style>
+<h1>Import Retrace graph</h1>
+<p>Choose a graph JSON downloaded from the dashboard (GET /v1/sessions/{id}/graph). It is validated before anything is created. Nothing is sent over the network.</p>
+<input id="file" type="file" accept="application/json,.json" />
+<div>
+  <button id="import" disabled>Import</button>
+  <button id="cancel">Close</button>
+</div>
+<div id="status"></div>
+<script>
+  let text = null;
+  const status = document.getElementById("status");
+  document.getElementById("file").addEventListener("change", async (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    if (f.size > 5 * 1024 * 1024) { status.textContent = "File is larger than 5 MB."; status.className = "err"; return; }
+    text = await f.text();
+    document.getElementById("import").disabled = false;
+    status.textContent = f.name + " loaded.";
+    status.className = "";
+  });
+  document.getElementById("import").onclick = () => parent.postMessage({ pluginMessage: { type: "import", text } }, "*");
+  document.getElementById("cancel").onclick = () => parent.postMessage({ pluginMessage: { type: "cancel" } }, "*");
+  onmessage = (e) => {
+    const m = e.data.pluginMessage;
+    if (!m || m.type !== "result") return;
+    status.className = m.ok ? "" : "err";
+    status.textContent = m.ok ? `Created ${m.count} elements.` : "Not imported:\n" + m.errors.join("\n");
+  };
+</script>

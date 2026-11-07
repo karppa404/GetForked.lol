@@ -1,0 +1,152 @@
+{
+  "schema_version": 1,
+  "session_id": "88db0638-e923-4d48-ba20-eb705eb2c141",
+  "nodes": [
+    {
+      "id": "screen:f41e903a-1537-4a4c-b7f9-327c74ad6b62",
+      "type": "screen",
+      "label": "Corrected label",
+      "evidence_ids": [
+        "f41e903a-1537-4a4c-b7f9-327c74ad6b62"
+      ],
+      "agent_label": "Window 0",
+      "corrected": true
+    },
+    {
+      "id": "screen:e8a71b06-c968-41ae-b9b2-bad565b5a3bb",
+      "type": "screen",
+      "label": "Window 0",
+      "evidence_ids": [
+        "e8a71b06-c968-41ae-b9b2-bad565b5a3bb"
+      ]
+    },
+    {
+      "id": "screen:b7746352-8966-4b31-b8f4-b58f4def57b9",
+      "type": "screen",
+      "label": "Window 1",
+      "evidence_ids": [
+        "b7746352-8966-4b31-b8f4-b58f4def57b9"
+      ]
+    },
+    {
+      "id": "action:8532b51f-4e21-4a54-8b77-9976f84ba49f",
+      "type": "action",
+      "label": "Click Button 0",
+      "evidence_ids": [
+        "8532b51f-4e21-4a54-8b77-9976f84ba49f",
+        "f41e903a-1537-4a4c-b7f9-327c74ad6b62",
+        "e8a71b06-c968-41ae-b9b2-bad565b5a3bb"
+      ],
+      "network_status": "observed"
+    },
+    {
+      "id": "action:2a9e1c03-8f95-4afd-b732-3f70163ca6bd",
+      "type": "action",
+      "label": "Click Button 1",
+      "evidence_ids": [
+        "2a9e1c03-8f95-4afd-b732-3f70163ca6bd",
+        "e8a71b06-c968-41ae-b9b2-bad565b5a3bb",
+        "b7746352-8966-4b31-b8f4-b58f4def57b9"
+      ],
+      "network_status": "none_observed"
+    },
+    {
+      "id": "api_call:840ced96-e156-4fc9-afdb-3bf73f102b04",
+      "type": "api_call",
+      "label": "POST /v1/orders",
+      "evidence_ids": [
+        "840ced96-e156-4fc9-afdb-3bf73f102b04"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge:6e982f24054a96d619fd",
+      "source": "screen:f41e903a-1537-4a4c-b7f9-327c74ad6b62",
+      "target": "action:8532b51f-4e21-4a54-8b77-9976f84ba49f",
+      "label": "",
+      "evidence_ids": [
+        "8532b51f-4e21-4a54-8b77-9976f84ba49f",
+        "f41e903a-1537-4a4c-b7f9-327c74ad6b62",
+        "e8a71b06-c968-41ae-b9b2-bad565b5a3bb"
+      ],
+      "association": "observed",
+      "basis": "interaction"
+    },
+    {
+      "id": "edge:da1fc5f1c0415a686a2e",
+      "source": "action:8532b51f-4e21-4a54-8b77-9976f84ba49f",
+      "target": "screen:e8a71b06-c968-41ae-b9b2-bad565b5a3bb",
+      "label": "",
+      "evidence_ids": [
+        "8532b51f-4e21-4a54-8b77-9976f84ba49f",
+        "f41e903a-1537-4a4c-b7f9-327c74ad6b62",
+        "e8a71b06-c968-41ae-b9b2-bad565b5a3bb"
+      ],
+      "association": "observed",
+      "basis": "interaction"
+    },
+    {
+      "id": "edge:2822e3dcf2c59e081a95",
+      "source": "screen:e8a71b06-c968-41ae-b9b2-bad565b5a3bb",
+      "target": "action:2a9e1c03-8f95-4afd-b732-3f70163ca6bd",
+      "label": "",
+      "evidence_ids": [
+        "2a9e1c03-8f95-4afd-b732-3f70163ca6bd",
+        "e8a71b06-c968-41ae-b9b2-bad565b5a3bb",
+        "b7746352-8966-4b31-b8f4-b58f4def57b9"
+      ],
+      "association": "observed",
+      "basis": "interaction"
+    },
+    {
+      "id": "edge:415f45759084101ce095",
+      "source": "action:2a9e1c03-8f95-4afd-b732-3f70163ca6bd",
+      "target": "screen:b7746352-8966-4b31-b8f4-b58f4def57b9",
+      "label": "",
+      "evidence_ids": [
+        "2a9e1c03-8f95-4afd-b732-3f70163ca6bd",
+        "e8a71b06-c968-41ae-b9b2-bad565b5a3bb",
+        "b7746352-8966-4b31-b8f4-b58f4def57b9"
+      ],
+      "association": "observed",
+      "basis": "interaction"
+    },
+    {
+      "id": "edge:ccef17ced7f0494ebe5a",
+      "source": "action:8532b51f-4e21-4a54-8b77-9976f84ba49f",
+      "target": "api_call:840ced96-e156-4fc9-afdb-3bf73f102b04",
+      "label": "followed by",
+      "evidence_ids": [
+        "8532b51f-4e21-4a54-8b77-9976f84ba49f",
+        "840ced96-e156-4fc9-afdb-3bf73f102b04"
+      ],
+      "association": "candidate",
+      "basis": "timing"
+    }
+  ],
+  "network_status": "observed",
+  "ambiguities": [],
+  "suggestions": [],
+  "graph_version": 1,
+  "generated_at": "2026-11-07T21:12:21.932372Z",
+  "generated_by": {
+    "pipeline": "retrace-4stage-v1",
+    "provider": "offline_heuristic",
+    "job_id": "849b028d-4edc-4ab2-9595-cd9625fcee2c",
+    "models": {
+      "workflow": "offline",
+      "network": "offline",
+      "reconcile": "offline",
+      "publish": "offline"
+    }
+  },
+  "corrections": [
+    {
+      "element_id": "screen:f41e903a-1537-4a4c-b7f9-327c74ad6b62",
+      "label": "Corrected label",
+      "updated_at": "2026-11-07T21:12:21.936125Z",
+      "applied": true
+    }
+  ]
+}
