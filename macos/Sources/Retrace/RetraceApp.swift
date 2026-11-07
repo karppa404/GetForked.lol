@@ -56,14 +56,17 @@ struct MenuBarLabel: View {
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        Group {
+        HStack(spacing: 3) {
+            RetraceMark()
             switch recorder.state {
-            case .idle: Image(systemName: "exclamationmark")
-            case .recording: Image(systemName: "record.circle.fill")
-            case .paused: Image(systemName: "pause.circle")
-            case .stopping: Image(systemName: "ellipsis.circle")
+            case .idle: EmptyView()
+            case .recording: Image(systemName: "circle.fill").foregroundStyle(.red).font(.system(size: 7))
+            case .paused: Image(systemName: "pause.fill").font(.system(size: 8))
+            case .stopping: Image(systemName: "ellipsis").font(.system(size: 8))
             }
         }
+        .accessibilityLabel(statusDescription)
+        .help(statusDescription)
         .onAppear {
             Task { @MainActor in
                 await Task.yield()
@@ -72,6 +75,15 @@ struct MenuBarLabel: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .retraceOpenReview)) { _ in
             WindowOpener(openWindow: openWindow)(WindowID.review)
+        }
+    }
+
+    private var statusDescription: String {
+        switch recorder.state {
+        case .idle: return "Retrace — ready to observe"
+        case .recording: return "Retrace — observing app activity"
+        case .paused: return "Retrace — observation paused"
+        case .stopping: return "Retrace — saving recording"
         }
     }
 }

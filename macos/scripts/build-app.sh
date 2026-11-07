@@ -1,6 +1,6 @@
 #!/bin/bash
 # Builds dist/Retrace.app from the SwiftPM executable. Reproducible: the bundle contains
-# only the release binary and Packaging/Info.plist. Signing defaults to ad hoc ("-"); set
+# the release binary, branding resources and Info.plist. Signing defaults to ad hoc ("-"); set
 # RETRACE_SIGN_IDENTITY to a real identity for a signature (and TCC grants) that survive rebuilds.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -20,6 +20,8 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp Packaging/Info.plist "$APP/Contents/Info.plist"
 cp "$BIN" "$APP/Contents/MacOS/Retrace"
+cp Packaging/Retrace.icns "$APP/Contents/Resources/"
+cp -R "$(dirname "$BIN")/Retrace_Retrace.bundle" "$APP/Contents/Resources/"
 plutil -lint "$APP/Contents/Info.plist" >/dev/null
 
 codesign --force --sign "$IDENTITY" --identifier dev.retrace.recorder \

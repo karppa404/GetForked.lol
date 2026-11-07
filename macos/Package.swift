@@ -17,6 +17,7 @@ let package = Package(
         .executableTarget(
             name: "Retrace",
             dependencies: ["RetraceCore"],
+            resources: [.process("Resources")],
             swiftSettings: [.swiftLanguageMode(.v5)]
         ),
         // Headless helper for validating session directories (no permissions needed).

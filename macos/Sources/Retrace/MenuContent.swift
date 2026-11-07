@@ -38,6 +38,7 @@ struct MenuContent: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
+                RetraceMark(size: 20, template: false)
                 Text("Retrace").font(.headline)
                 Spacer()
                 statusBadge
