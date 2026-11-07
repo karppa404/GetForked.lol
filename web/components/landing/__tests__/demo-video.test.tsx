@@ -17,6 +17,7 @@ describe("demo video", () => {
     expect(video.getAttribute("preload")).toBe("none");
     expect(video.hasAttribute("controls")).toBe(true);
     expect(video.hasAttribute("playsinline")).toBe(true);
+    expect(video.querySelector('track[kind="captions"]')?.getAttribute("src")).toBe("/demo/captions.vtt");
   });
 
   it("says plainly when the video file is missing", () => {

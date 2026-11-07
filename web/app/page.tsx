@@ -37,7 +37,7 @@ export default function Home() {
             <a href="#graphs">Graphs</a>
             <a href="#details">Details</a>
           </nav>
-          <Link href="/dashboard" className="lp-btn lp-btn--light lp-btn--small">Open workspace</Link>
+          <Link prefetch={false} href="/dashboard" className="lp-btn lp-btn--light lp-btn--small">Open workspace</Link>
         </div>
       </header>
 
@@ -47,7 +47,7 @@ export default function Home() {
           <h1>See how an app works<br />by using it.</h1>
           <p className="lp-lede">Retrace watches an app while you work, then maps its screens, actions and API calls. Every connection is backed by evidence you reviewed.</p>
           <div className="lp-actions">
-            <Link href="/dashboard" className="lp-btn lp-btn--light">Open workspace</Link>
+            <Link prefetch={false} href="/dashboard" className="lp-btn lp-btn--light">Open workspace</Link>
             <a href="#demo" className="lp-btn lp-btn--ghost">Watch the demo</a>
           </div>
           <WorkspaceShowcase />
@@ -130,7 +130,7 @@ export default function Home() {
           <h2 id="cta-title">Start with the app you already have.</h2>
           <p>Start the API, then open the workspace on this Mac.</p>
           <pre className="lp-code"><code>cd backend && RETRACE_DEV_AUTH=1 uv run python -m retrace</code></pre>
-          <Link href="/dashboard" className="lp-btn lp-btn--light">Open workspace</Link>
+          <Link prefetch={false} href="/dashboard" className="lp-btn lp-btn--light">Open workspace</Link>
         </section>
       </main>
 
