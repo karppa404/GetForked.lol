@@ -1,6 +1,6 @@
 # Run the integrated local demo
 
-The public Vercel site remains a sample-data preview until Google login and hosted API configuration are available. The local workspace uses the actual API and SpacetimeDB.
+Retrace now runs on localhost only. The landing page and workspace use local assets; the workspace uses the actual API and SpacetimeDB.
 
 ## Terminals
 
@@ -40,9 +40,9 @@ The public Vercel site remains a sample-data preview until Google login and host
    macos/scripts/run.sh
    ```
 
-   Grant macOS permissions through the app. Select a supported app, press **Start Observing App Activity**, and go about your work in it; there is no task to type. Stop, inspect and omit sensitive evidence, and confirm review. Press **Connect to Local workspace** once (it calls the loopback-only `POST /v1/local/connect` at `http://127.0.0.1:8000`; no room code or approval), then **Upload & Analyze**. Recordings remain local until this action, and everything stays on localhost until you export the graph for FigJam.
+   Grant macOS permissions through the app. Select a supported app, press **Start Observing App Activity**, and go about your work in it; there is no task to type. Stop, inspect and omit sensitive evidence, and confirm review. Press **Connect to Local workspace** once (it calls the loopback-only `POST /v1/local/connect` at `http://127.0.0.1:8000`; no room code or approval), then **Upload & Analyze**. Recordings remain local until this action, and the API stores it locally. Configured remote Nemotron inference receives the sanitized analysis evidence; the currently configured text-only endpoint receives no screenshot pixels.
 
-5. Open the session in two local browser windows, signed into the same development account. The header should say **Live updates**. Rename a workflow node in one window and see the other update through SpacetimeDB. A bounded API refresh takes over if subscriptions are unavailable.
+5. Open the session in two local browser windows, signed into the same development account. The sidebar should say **Live**. Rename a workflow node in one window and see the other update through SpacetimeDB. A bounded API refresh takes over if subscriptions are unavailable.
 
 6. Download graph JSON, build/register the [FigJam plugin](../figjam-plugin/README.md), and import the graph into a board you own. Save that board's URL on the session for later access. Figma runtime import is a separate manual check; compilation and graph validation do not prove the plugin ran in Figma.
 
@@ -59,6 +59,6 @@ RETRACE_LIVE_FIXTURE=../backend/.secrets/integration_fixture.json npm test -- --
 
 The smoke creates a synthetic project using a separate `integration@localhost` account, uploads the committed native test frames, runs four deterministic stages, checks correction persistence across reruns and exports the graph. The web check opens two independent authorized SpacetimeDB subscriptions and verifies corrections reach both. This checks real HTTP/WebSocket interoperability, not actual screen recording, browser layout, Google authentication, or Nemotron quality. Generated tokens remain in the gitignored `backend/.secrets/` directory and are never printed.
 
-## Hosted rollout
+## Local artifacts and exports
 
-The API currently stores private artifacts on its own disk. A hosted deployment needs a persistent private volume or the planned private object-store adapter. The public landing/dashboard can remain on Vercel; deploy the Python worker/API separately with Google OAuth configuration, a SpacetimeDB instance, durable artifact storage and an authenticated inference endpoint. Never point the public site at localhost or enable development authentication on an internet-facing API.
+The API stores private artifacts on this Mac's disk. There is no hosted deployment step. Download validated graph JSON for the FigJam importer and the applicable network graph. An imported FigJam board remains accessible through its saved board URL. The separate mitmproxy helper must be configured to obtain network evidence; the recorder alone reports Network not captured.
