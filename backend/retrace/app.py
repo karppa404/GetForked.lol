@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import threading
@@ -621,7 +622,9 @@ def create_app(
     @app.get("/v1/sessions/{session_id}/corrections")
     def list_corrections(session_id: str, user: User = Depends(current_user)):
         accessible_session(session_id, user)
-        return {"corrections": [_correction_out(c) for c in services.state.list_corrections(session_id)]}
+        items = [_correction_out(c) for c in services.state.list_corrections(session_id)]
+        version = hashlib.sha256(json.dumps(items, sort_keys=True).encode()).hexdigest()[:16]
+        return JSONResponse({"corrections": items, "version": version}, headers={"ETag": f'"{version}"', "Cache-Control": "private, no-store"})
 
     @app.put("/v1/sessions/{session_id}/corrections/{element_id}")
     def put_correction(session_id: str, element_id: str, body: CorrectionPut, user: User = Depends(current_user)):
