@@ -1,0 +1,29 @@
+[project]
+name = "retrace-backend"
+version = "0.1.0"
+description = "Retrace API: pairing, private evidence ingestion, bounded Nemotron analysis, shared state."
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn>=0.30",
+  "pydantic>=2.8",
+  "python-multipart>=0.0.9",
+  "httpx>=0.27",
+  "google-auth>=2.30",
+  "requests>=2.31",
+]
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["retrace"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["ignore::DeprecationWarning"]
