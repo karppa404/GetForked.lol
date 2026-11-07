@@ -6,6 +6,13 @@ import Testing
 struct CapturePolicyTests {
     let target: Int32 = 500
 
+    @Test func asynchronousFrameCompletionCannotCrossSessionBoundary() {
+        #expect(CapturePolicy.canRetainFrame(sessionId: "A", activeSessionId: "A", sessionIsActive: true, cancelled: false))
+        #expect(!CapturePolicy.canRetainFrame(sessionId: "A", activeSessionId: "B", sessionIsActive: true, cancelled: false))
+        #expect(!CapturePolicy.canRetainFrame(sessionId: "A", activeSessionId: "A", sessionIsActive: false, cancelled: false))
+        #expect(!CapturePolicy.canRetainFrame(sessionId: "A", activeSessionId: "A", sessionIsActive: true, cancelled: true))
+    }
+
     @Test func acceptsOnlyTargetWhileFrontmostAndRecording() {
         #expect(CapturePolicy.evaluate(recording: true, targetPID: target, frontmostPID: target, ownerPID: target, kind: .pointer) == .accept)
         #expect(CapturePolicy.evaluate(recording: true, targetPID: target, frontmostPID: target, ownerPID: target, kind: .key) == .accept)

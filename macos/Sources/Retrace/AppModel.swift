@@ -23,6 +23,7 @@ final class AppModel: ObservableObject {
     let recorder: Recorder
     let credentialStore: CredentialStore
     private var pairingTask: Task<Void, Never>?
+    private var pairingAttemptId: UUID?
 
     init(store: SessionStore = SessionStore(root: SessionStore.defaultRoot()),
          credentialStore: CredentialStore = KeychainCredentialStore()) {
@@ -89,18 +90,34 @@ final class AppModel: ObservableObject {
         let name = deviceName
         let service = PairingService(client: APIClient(baseURL: base))
         pairing = .claiming
+        let attemptId = UUID()
+        pairingAttemptId = attemptId
         pairingTask = Task { [weak self] in
-            defer { Task { @MainActor in self?.pairingTask = nil } }
+            defer {
+                Task { @MainActor in
+                    if self?.pairingAttemptId == attemptId {
+                        self?.pairingTask = nil
+                        self?.pairingAttemptId = nil
+                    }
+                }
+            }
             let claim: ClaimResponse
             do {
                 claim = try await service.claim(code: code, deviceName: name)
             } catch {
-                await MainActor.run { self?.pairing = .failed(String(describing: error)) }
+                await MainActor.run {
+                    guard !Task.isCancelled, self?.pairingAttemptId == attemptId else { return }
+                    self?.pairing = .failed(String(describing: error))
+                }
                 return
             }
+            guard !Task.isCancelled, self?.pairingAttemptId == attemptId else { return }
             await MainActor.run { self?.pairing = .pending(claimId: claim.claimId, deviceName: name) }
             let outcome = await service.waitForApproval(claim: claim, deviceName: name)
-            await MainActor.run { self?.finishPairing(outcome) }
+            await MainActor.run {
+                guard !Task.isCancelled, self?.pairingAttemptId == attemptId else { return }
+                self?.finishPairing(outcome)
+            }
         }
     }
 
@@ -124,11 +141,13 @@ final class AppModel: ObservableObject {
     func cancelPairing() {
         pairingTask?.cancel()
         pairingTask = nil
+        pairingAttemptId = nil
         if case .paired = pairing { return }
         pairing = credential.map { .paired(projectId: $0.projectId) } ?? .unpaired
     }
 
     func unpair() {
+        cancelPairing()
         guard let base = baseURL else { return }
         do {
             try credentialStore.delete(apiBaseURL: base.description)

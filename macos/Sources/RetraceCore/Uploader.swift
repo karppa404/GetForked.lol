@@ -36,7 +36,13 @@ private extension Data {
 
 public enum UploadError: Error, CustomStringConvertible {
     case credentialMismatch
-    public var description: String { "This Mac's credential was issued by a different server. Pair again for this API URL." }
+    case projectMismatch
+    public var description: String {
+        switch self {
+        case .credentialMismatch: return "This Mac's credential was issued by a different server. Pair again for this API URL."
+        case .projectMismatch: return "This recording belongs to a different project than the paired device credential."
+        }
+    }
 }
 
 /// Uploads a reviewed, redacted manifest and its frame files. Call only from an explicit
@@ -62,6 +68,7 @@ public struct SessionUploader: Sendable {
 
     public func makeUploadRequest(manifest: SessionManifest, files: [(filename: String, data: Data)], credential: DeviceCredential) throws -> URLRequest {
         guard credential.apiBaseURL == client.baseURL.description else { throw UploadError.credentialMismatch }
+        guard manifest.projectId == credential.projectId else { throw UploadError.projectMismatch }
         let issues = ManifestValidator.validate(manifest, purpose: .upload)
         guard issues.isEmpty else { throw ReviewError.invalid(issues) }
         let referenced = Set(manifest.frames.map(\.filename))

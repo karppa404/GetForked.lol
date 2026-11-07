@@ -18,6 +18,21 @@ struct BaseURLTests {
 
 @Suite("Pairing")
 struct PairingTests {
+    @Test func cancellationDuringPollDoesNotAcceptDeviceCredential() async throws {
+        struct CancellingTransport: HTTPTransport {
+            func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+                withUnsafeCurrentTask { $0?.cancel() }
+                let body = Data(#"{"status":"approved","device_token":"never-store-this","project_id":"proj-1"}"#.utf8)
+                return (body, HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
+            }
+        }
+        let service = PairingService(client: APIClient(baseURL: try APIBaseURL(APIBaseURL.development), transport: CancellingTransport()))
+        let task = Task {
+            await service.waitForApproval(claim: ClaimResponse(claimId: "c-1", claimSecret: "s", status: "pending"), deviceName: "Mac", sleep: noSleep)
+        }
+        #expect(await task.value == .cancelled)
+    }
+
     @Test func claimSendsCodeAndDeviceNameOnly() async throws {
         let t = MockTransport([.json(200, #"{"claim_id":"c-1","claim_secret":"s3cret","status":"pending"}"#)])
         let resp = try await PairingService(client: try client(t)).claim(code: "  ABCD-1234 ", deviceName: "Lab Mac")
@@ -129,6 +144,9 @@ struct UploadTests {
         #expect(throws: ReviewError.self) { try up.makeUploadRequest(manifest: unreviewed, files: [], credential: credential()) }
         let (m, files) = try reviewedFixture()
         #expect(throws: UploadError.self) { try up.makeUploadRequest(manifest: m, files: files, credential: credential(base: "https://evil.example.com")) }
+        var wrongProject = m
+        wrongProject.projectId = "other-project"
+        #expect(throws: UploadError.self) { try up.makeUploadRequest(manifest: wrongProject, files: files, credential: credential()) }
         #expect(throws: APIError.self) { try up.makeUploadRequest(manifest: m, files: Array(files.prefix(1)), credential: credential()) }
     }
 

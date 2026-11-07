@@ -330,6 +330,7 @@ final class Recorder: ObservableObject {
     }
 
     private func handleScroll(_ event: NSEvent) {
+        guard let hit = verifyPointer(event) else { droppedCount += 1; return }
         let t = event.timestamp
         if var s = scroll, t - s.last < 0.4 {
             s.dx += Double(event.scrollingDeltaX)
@@ -340,7 +341,6 @@ final class Recorder: ObservableObject {
             return
         }
         endScroll(scheduleAfter: true)
-        guard let hit = verifyPointer(event) else { droppedCount += 1; return }
         endTyping(scheduleAfter: true)
         let (x, y) = displayRelative(hit.point)
         let it = Interaction(timestampMs: clock.milliseconds(atUptime: t), kind: .scroll, x: x, y: y,
@@ -434,10 +434,13 @@ final class Recorder: ObservableObject {
     /// Keeps the most recent frame in memory (not on disk) so an action's "before" frame is
     /// the screen state just prior to the event. Only persisted if an interaction uses it.
     private func refreshCache() {
-        guard state == .recording, let capturer else { return }
+        guard capturingAllowed, state == .recording, let capturer else { return }
+        let captureSessionId = sessionId
         track { [weak self] in
             guard let img = try? await capturer.capture() else { return }
-            guard let self, self.capturingAllowed else { return }
+            guard let self, self.capturingAllowed,
+                  CapturePolicy.canRetainFrame(sessionId: captureSessionId, activeSessionId: self.sessionId,
+                                               sessionIsActive: self.isActive, cancelled: Task.isCancelled) else { return }
             if let c = self.cache, c.image.uptime > img.uptime { return }
             self.cache = (img, nil)
         }
@@ -475,11 +478,14 @@ final class Recorder: ObservableObject {
         scheduled = scheduled.filter { $0.value.target > now - 5 }
         let bucket = CapturePolicy.coalescingBucket(forUptime: target)
         if let existing = scheduled[bucket] { return existing.task }
+        let captureSessionId = sessionId
         let task = Task { @MainActor [weak self] () -> String? in
             let wait = target - ProcessInfo.processInfo.systemUptime
             if wait > 0 { try? await Task.sleep(for: .seconds(wait)) }
             guard let self, !Task.isCancelled, self.capturingAllowed, let capturer = self.capturer else { return nil }
-            guard let img = try? await capturer.capture(), self.capturingAllowed || self.state == .stopping else { return nil }
+            guard let img = try? await capturer.capture(), self.capturingAllowed,
+                  CapturePolicy.canRetainFrame(sessionId: captureSessionId, activeSessionId: self.sessionId,
+                                               sessionIsActive: self.isActive, cancelled: Task.isCancelled) else { return nil }
             guard let id = self.reserveFrame() else { return nil }
             if self.state == .recording { self.cache = (img, id) }
             return await self.persist(img, id: id)
@@ -499,6 +505,12 @@ final class Recorder: ObservableObject {
                                          width: img.image.width, height: img.image.height)
         }.value
         guard let frame else { return nil }
+        guard CapturePolicy.canRetainFrame(sessionId: sessionId, activeSessionId: self.sessionId,
+                                          sessionIsActive: isActive, cancelled: Task.isCancelled) else {
+            let file = store.directory(for: sessionId).appendingPathComponent("frames").appendingPathComponent(frame.filename)
+            try? FileManager.default.removeItem(at: file)
+            return nil
+        }
         frames[id] = frame
         frameCount = frames.count
         return id

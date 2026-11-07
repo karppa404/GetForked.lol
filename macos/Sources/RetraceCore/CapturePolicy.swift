@@ -28,6 +28,11 @@ public enum CapturePolicy {
     /// Max age of the in-memory frame that may serve as an action's "before" evidence.
     public static let maxBeforeFrameAge: TimeInterval = 3.0
 
+    /// An asynchronous frame completion must never write into a finalized or newer session.
+    public static func canRetainFrame(sessionId: String, activeSessionId: String, sessionIsActive: Bool, cancelled: Bool) -> Bool {
+        sessionId == activeSessionId && sessionIsActive && !cancelled
+    }
+
     /// Whether a cached frame captured at `frameUptime` can be the before frame of an event at `eventUptime`.
     public static func isUsableBeforeFrame(frameUptime: TimeInterval, eventUptime: TimeInterval) -> Bool {
         frameUptime <= eventUptime && eventUptime - frameUptime < maxBeforeFrameAge

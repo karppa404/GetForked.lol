@@ -89,6 +89,7 @@ public struct PairingService: Sendable {
             if clock() >= deadline { return .expired }
             do {
                 let r = try await poll(claimId: claim.claimId, claimSecret: claim.claimSecret)
+                if Task.isCancelled { return .cancelled }
                 consecutiveErrors = 0
                 switch r.status.lowercased() {
                 case "pending": break
