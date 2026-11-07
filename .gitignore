@@ -14,3 +14,10 @@ spacetimedb/node_modules/
 macos/.build/
 macos/dist/
 macos/.swiftpm/
+
+# Python helpers and backend state
+__pycache__/
+*.pyc
+
+# Local release archives
+/release/

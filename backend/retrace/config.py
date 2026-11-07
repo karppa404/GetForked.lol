@@ -163,9 +163,12 @@ class Settings:
         token_file = _env("RETRACE_SPACETIME_TOKEN_FILE")
         if token is None and token_file:
             token = Path(token_file).read_text().strip() or None
+        model_api_key = _env("RETRACE_LLM_API_KEY")
+        if model_api_key is None and (key_file := _env("RETRACE_LLM_API_KEY_FILE")):
+            model_api_key = Path(key_file).read_text().strip() or None
         llm = LLMSettings(
             base_url=_env("RETRACE_LLM_BASE_URL"),
-            api_key=_env("RETRACE_LLM_API_KEY"),
+            api_key=model_api_key,
             provider=_env("RETRACE_LLM_PROVIDER", "openai_compatible") or "openai_compatible",
             model_default=_env("RETRACE_LLM_MODEL"),
             model_workflow=_env("RETRACE_LLM_MODEL_WORKFLOW"),

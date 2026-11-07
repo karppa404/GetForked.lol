@@ -359,3 +359,14 @@ def test_redirect_or_html_login_page_is_not_retried():
     with pytest.raises(PermanentLLMError, match="non-JSON"):
         p.chat("m", [{"role": "user", "content": "x"}], 8, 0)
     assert len(calls) == 2
+
+
+def test_inference_api_key_can_be_read_from_a_private_file(tmp_path, monkeypatch):
+    from retrace.config import Settings
+    key_file = tmp_path / "inference-key"
+    key_file.write_text("synthetic-key-not-a-credential\n")
+    monkeypatch.delenv("RETRACE_LLM_API_KEY", raising=False)
+    monkeypatch.setenv("RETRACE_LLM_API_KEY_FILE", str(key_file))
+    settings = Settings.from_env()
+    assert settings.llm.api_key == "synthetic-key-not-a-credential"
+    assert settings.llm.api_key not in repr(settings.llm)
