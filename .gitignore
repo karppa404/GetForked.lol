@@ -7,3 +7,5 @@ out/
 .DS_Store
 spacetimedb/dist/
 spacetimedb/node_modules/
+
+*.tsbuildinfo
