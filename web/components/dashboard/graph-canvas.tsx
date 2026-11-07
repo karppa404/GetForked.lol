@@ -189,7 +189,6 @@ function CanvasInner({ view, selection, highlightedIds, editedIds, ambiguousIds,
         maxZoom={1.75}
         fitView
         fitViewOptions={{ padding: 0.18, maxZoom: 1.1 }}
-        proOptions={{ hideAttribution: true }}
       >
         <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
         <Controls showInteractive={false} position="bottom-right" />
