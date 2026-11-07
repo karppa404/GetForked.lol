@@ -329,3 +329,33 @@ def test_concurrent_analyze_requests_create_one_job(tmp_path):
             ids = set(pool.map(lambda _: c.post(url, headers=device, json={}).json()["job_id"], range(8)))
         assert len(ids) == 1
         app.state.services.executor.shutdown(wait=True)
+
+
+def test_endpoint_configuration_rules():
+    from retrace.config import ConfigError, Settings
+
+    keyless = LLMSettings(base_url="http://127.0.0.1:8001/v1", model_default="nvidia/nano-vl")
+    assert keyless.configured  # loopback port forward to a self-hosted server
+    assert not LLMSettings(base_url="https://gateway.example/v1", model_default="m").configured  # remote needs a key
+    with pytest.raises(ConfigError):
+        Settings(llm=LLMSettings(base_url="http://10.0.0.5:8000/v1", api_key="k", model_default="m")).validate()
+
+
+def test_redirect_or_html_login_page_is_not_retried():
+    from retrace.analysis.llm import PermanentLLMError
+
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        assert "authorization" not in request.headers  # keyless provider sends no header
+        if len(calls) == 1:
+            return httpx.Response(302, headers={"location": "https://login.brev.dev"})
+        return httpx.Response(200, text="<html>login</html>", headers={"content-type": "text/html"})
+
+    p = OpenAICompatibleProvider("http://127.0.0.1:9/v1", None, 5, transport=httpx.MockTransport(handler))
+    with pytest.raises(PermanentLLMError, match="redirect"):
+        p.chat("m", [{"role": "user", "content": "x"}], 8, 0)
+    with pytest.raises(PermanentLLMError, match="non-JSON"):
+        p.chat("m", [{"role": "user", "content": "x"}], 8, 0)
+    assert len(calls) == 2

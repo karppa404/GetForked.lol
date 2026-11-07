@@ -82,12 +82,16 @@ def estimate_prompt_tokens(messages: list[dict]) -> int:
 class OpenAICompatibleProvider:
     name = "openai_compatible"
 
-    def __init__(self, base_url: str, api_key: str, timeout_s: float, transport: httpx.BaseTransport | None = None):
+    def __init__(self, base_url: str, api_key: str | None, timeout_s: float, transport: httpx.BaseTransport | None = None):
+        headers = {"Accept": "application/json"}
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
         self._client = httpx.Client(
             base_url=base_url.rstrip("/"),
             timeout=httpx.Timeout(timeout_s, connect=min(10.0, timeout_s)),
-            headers={"Authorization": f"Bearer {api_key}", "Accept": "application/json"},
+            headers=headers,
             transport=transport,
+            follow_redirects=False,  # a tunnel login redirect must not be followed with the key
         )
 
     def chat(self, model: str, messages: list[dict], max_tokens: int, temperature: float) -> ChatResponse:
@@ -105,8 +109,11 @@ class OpenAICompatibleProvider:
             except ValueError:
                 pass
             raise TransientLLMError(f"HTTP {r.status_code}", retry_after)
-        if r.status_code >= 400:
-            raise PermanentLLMError(f"HTTP {r.status_code}")
+        if r.status_code >= 300:
+            hint = " (redirect: endpoint may require browser auth; use a local port forward)" if r.status_code < 400 else ""
+            raise PermanentLLMError(f"HTTP {r.status_code}{hint}")
+        if "json" not in r.headers.get("content-type", ""):
+            raise PermanentLLMError("non-JSON response (tunnel login page?); use a local port forward")
         try:
             data = r.json()
             content = data["choices"][0]["message"]["content"] or ""
@@ -156,6 +163,7 @@ def budget_summary(settings: LLMSettings, ledger: UsageLedger) -> dict:
             "max_output_tokens_per_call": settings.max_output_tokens,
             "max_frames": settings.max_frames_per_job,
             "max_prompt_chars": settings.max_prompt_chars,
+            "max_seconds": settings.max_job_seconds,
         },
         "max_concurrent_calls": settings.max_concurrent_calls,
     }
@@ -184,10 +192,13 @@ class BoundedLLM:
         self.completion_tokens = 0
         self.estimated = False
         self._lock = threading.Lock()
+        self._started = time.monotonic()
 
     def _reserve(self, tokens: int) -> None:
         s = self.settings
         with self._lock:
+            if time.monotonic() - self._started > s.max_job_seconds:
+                raise BudgetExceeded(f"job wall-clock cap reached ({s.max_job_seconds:.0f}s)")
             if self.calls_used >= s.max_calls_per_job:
                 raise BudgetExceeded(f"job call cap reached ({s.max_calls_per_job})")
             if self.prompt_tokens + self.completion_tokens + tokens > s.max_tokens_per_job:

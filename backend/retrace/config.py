@@ -76,12 +76,13 @@ class LLMSettings:
     max_retries: int = 2
     max_output_tokens: int = 2048
     max_prompt_chars: int = 60_000
-    max_frames_per_job: int = 8
+    max_frames_per_job: int = 4
     max_frame_bytes: int = 1_500_000
     max_calls_per_job: int = 8
     max_tokens_per_job: int = 150_000
     max_concurrent_calls: int = 2
     max_concurrent_jobs: int = 1
+    max_job_seconds: float = 600.0
     budget_total_tokens: int = 3_000_000
     budget_usd: float = 45.0
     price_input_per_mtok: float | None = None
@@ -98,10 +99,18 @@ class LLMSettings:
         return specific or self.model_default
 
     @property
+    def keyless_allowed(self) -> bool:
+        """A key may be omitted only for a loopback endpoint (e.g. an SSH/Brev port
+        forward to a self-hosted NIM/vLLM server)."""
+        from urllib.parse import urlsplit
+
+        return bool(self.base_url) and is_loopback_host(urlsplit(self.base_url).hostname)
+
+    @property
     def configured(self) -> bool:
         if self.provider == "offline_heuristic":
             return True
-        return bool(self.base_url and self.api_key and all(
+        return bool(self.base_url and (self.api_key or self.keyless_allowed) and all(
             self.model_for(s) for s in ("workflow", "network", "reconcile", "publish")
         ))
 
@@ -168,11 +177,12 @@ class Settings:
             max_retries=_int("RETRACE_LLM_MAX_RETRIES", 2),
             max_output_tokens=_int("RETRACE_LLM_MAX_OUTPUT_TOKENS", 2048),
             max_prompt_chars=_int("RETRACE_LLM_MAX_PROMPT_CHARS", 60_000),
-            max_frames_per_job=_int("RETRACE_LLM_MAX_FRAMES", 8),
+            max_frames_per_job=_int("RETRACE_LLM_MAX_FRAMES", 4),
             max_calls_per_job=_int("RETRACE_LLM_MAX_CALLS_PER_JOB", 8),
             max_tokens_per_job=_int("RETRACE_LLM_MAX_TOKENS_PER_JOB", 150_000),
             max_concurrent_calls=_int("RETRACE_LLM_MAX_CONCURRENCY", 2),
             max_concurrent_jobs=_int("RETRACE_MAX_CONCURRENT_JOBS", 1),
+            max_job_seconds=_float("RETRACE_LLM_MAX_JOB_SECONDS", 600.0) or 600.0,
             budget_total_tokens=_int("RETRACE_BUDGET_TOTAL_TOKENS", 3_000_000),
             budget_usd=_float("RETRACE_BUDGET_USD", 45.0) or 45.0,
             price_input_per_mtok=_float("RETRACE_PRICE_INPUT_PER_MTOK", None),
@@ -212,5 +222,7 @@ class Settings:
             raise ConfigError("RETRACE_LLM_PROVIDER must be openai_compatible or offline_heuristic")
         if self.llm.provider == "offline_heuristic" and self.is_production:
             raise ConfigError("offline heuristic analysis is a development tool; not allowed in production")
+        if self.llm.base_url and not self.llm.keyless_allowed and not self.llm.base_url.startswith("https://"):
+            raise ConfigError("RETRACE_LLM_BASE_URL must use https unless it is a loopback port forward")
         if "*" in self.cors_origins and self.is_production:
             raise ConfigError("wildcard CORS is not allowed in production")
