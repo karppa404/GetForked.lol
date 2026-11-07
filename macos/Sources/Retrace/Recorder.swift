@@ -167,6 +167,12 @@ final class Recorder: ObservableObject {
                 if let f = it.delayedFrameId, !known.contains(f) { it.delayedFrameId = nil }
                 return it
             }
+        // Never leave image files on disk that the review window can't show.
+        let framesDir = store.directory(for: sessionId).appendingPathComponent("frames", isDirectory: true)
+        let keptNames = Set(sortedFrames.map(\.filename))
+        for file in (try? FileManager.default.contentsOfDirectory(atPath: framesDir.path)) ?? [] where !keptNames.contains(file) {
+            try? FileManager.default.removeItem(at: framesDir.appendingPathComponent(file))
+        }
         let bundleId = target?.bundleIdentifier ?? "unknown"
         let manifest = SessionManifest(
             id: sessionId,
