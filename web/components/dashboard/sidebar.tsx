@@ -5,12 +5,13 @@ import { describeError, isAbort } from "@/lib/dashboard/http";
 import { routeHref, useRealtimeStatus, type Resource } from "@/lib/dashboard/hooks";
 import type { Project } from "@/lib/dashboard/types";
 import { Icon, Spinner, useDashboard } from "./ui";
+import { BrandMark } from "@/components/brand-mark";
 
 export function Sidebar({ projects, activeId }: { projects: Resource<Project[]>; activeId?: string }) {
   const [creating, setCreating] = useState(false);
   return (
     <nav className="rd-sidebar" aria-label="Workspace">
-      <a className="rd-wordmark" href="/" aria-label="Retrace home">Retrace</a>
+      <a className="rd-wordmark" href="/" aria-label="Retrace home"><BrandMark />Retrace</a>
       <div className="rd-side-head">
         <h2 id="rd-side-projects">Projects</h2>
         <button type="button" className="rd-icon-btn" aria-label="New project" title="New project" onClick={() => setCreating(true)} disabled={creating}>
