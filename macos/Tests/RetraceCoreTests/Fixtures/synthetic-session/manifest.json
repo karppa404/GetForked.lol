@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "id": "0b6f3c1e-8d2a-4f5b-9c7d-1e2f3a4b5c6d",
+  "app": { "name": "Synthetic Notes", "bundle_id": "com.example.synthetic-notes", "pid": 4242 },
+  "task": "Create a note titled Groceries and save it",
+  "started_at": "2026-11-07T15:00:00.000Z",
+  "duration_ms": 9000,
+  "interactions": [
+    {
+      "id": "a1b2c3d4-0000-4000-8000-000000000001",
+      "timestamp_ms": 1200,
+      "kind": "click",
+      "x": 412, "y": 88,
+      "accessibility": { "role": "AXButton", "title": "New Note", "window_title": "Synthetic Notes" },
+      "before_frame_id": "3f1c9a52-6a0e-4c5b-9b8e-1d2f3a4b5c61",
+      "after_frame_id": "7a2d4e81-0b3c-4d5e-8f9a-2b3c4d5e6f72"
+    },
+    {
+      "id": "a1b2c3d4-0000-4000-8000-000000000002",
+      "timestamp_ms": 2100,
+      "kind": "text_input",
+      "key": "redacted",
+      "accessibility": { "role": "AXTextField", "label": "Title", "window_title": "Synthetic Notes" }
+    },
+    {
+      "id": "a1b2c3d4-0000-4000-8000-000000000003",
+      "timestamp_ms": 2600,
+      "kind": "focus_lost"
+    },
+    {
+      "id": "a1b2c3d4-0000-4000-8000-000000000004",
+      "timestamp_ms": 5000,
+      "kind": "focus_regained"
+    },
+    {
+      "id": "a1b2c3d4-0000-4000-8000-000000000005",
+      "timestamp_ms": 6100,
+      "kind": "key",
+      "key": "cmd+s",
+      "accessibility": { "role": "AXTextField", "label": "Title", "window_title": "Synthetic Notes" },
+      "before_frame_id": "7a2d4e81-0b3c-4d5e-8f9a-2b3c4d5e6f72",
+      "delayed_frame_id": "c4e5f6a7-1b2c-4d3e-9f0a-3c4d5e6f7a83"
+    }
+  ],
+  "frames": [
+    { "id": "3f1c9a52-6a0e-4c5b-9b8e-1d2f3a4b5c61", "timestamp_ms": 900, "filename": "3f1c9a52-6a0e-4c5b-9b8e-1d2f3a4b5c61.png", "width": 16, "height": 10, "sha256": "2284accb8662cde720a46f867d246e30ea25f339b12711c3ae01cd2b41ce6688" },
+    { "id": "7a2d4e81-0b3c-4d5e-8f9a-2b3c4d5e6f72", "timestamp_ms": 1450, "filename": "7a2d4e81-0b3c-4d5e-8f9a-2b3c4d5e6f72.png", "width": 16, "height": 10, "sha256": "0685b2d685477b0b11362d3480f2e2b412566925818c143f842cacd7719be98b" },
+    { "id": "c4e5f6a7-1b2c-4d3e-9f0a-3c4d5e6f7a83", "timestamp_ms": 7600, "filename": "c4e5f6a7-1b2c-4d3e-9f0a-3c4d5e6f7a83.png", "width": 16, "height": 10, "sha256": "48c97028ca456ffe4503cab2074a1f684820ecf8b4456a428cc45b8189b09a01" }
+  ],
+  "network": [],
+  "network_status": "not_captured",
+  "redaction": { "reviewed": false }
+}
