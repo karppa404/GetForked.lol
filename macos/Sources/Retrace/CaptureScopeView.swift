@@ -28,7 +28,7 @@ struct CaptureScopeView: View {
                 section("Storage and upload", [
                     "Sessions are stored in ~/Library/Application Support/Retrace/Sessions (folders 0700, excluded from backups).",
                     "Nothing leaves this Mac until you open a session, omit what must not be shared, confirm the review and press Upload & Analyze. Only kept frames and events are uploaded. Retrace does not detect sensitive content automatically.",
-                    "Uploads use a device token from room pairing, stored in the Keychain and tied to the server URL it came from.",
+                    "Uploads use a device token from the one-click local connection to the Retrace server on this Mac, stored in the Keychain and tied to that server URL.",
                 ])
                 section("Permissions", [
                     "Accessibility: observe input events and read element roles. Grant it in System Settings › Privacy & Security › Accessibility.",

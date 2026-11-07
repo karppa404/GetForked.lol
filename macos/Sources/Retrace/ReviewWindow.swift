@@ -210,7 +210,7 @@ struct SessionReviewView: View {
                     .toggleStyle(.checkbox)
                     Text("Changing any omission clears this confirmation.").font(.caption).foregroundStyle(.secondary)
                 }
-                pairingStatus
+                connectionStatus
                 if let msg = model.sessionMessages[session.id] {
                     Text(msg).font(.callout).textSelection(.enabled)
                 }
@@ -236,11 +236,17 @@ struct SessionReviewView: View {
         }
     }
 
-    @ViewBuilder private var pairingStatus: some View {
+    @ViewBuilder private var connectionStatus: some View {
         if let cred = model.credential {
-            Text("Destination: project \(cred.projectId) at \(cred.apiBaseURL)").font(.caption).foregroundStyle(.secondary)
+            Text("Destination: \(cred.projectName ?? "project \(cred.projectId)") at \(cred.apiBaseURL)").font(.caption).foregroundStyle(.secondary)
         } else {
-            Text("Not paired with \(model.apiBaseURLString). Use Pair… in the menu first.").font(.caption).foregroundStyle(.orange)
+            HStack {
+                Text("Not connected to \(model.apiBaseURLString).").font(.caption).foregroundStyle(.orange)
+                Button(model.connection == .connecting ? "Connecting…" : "Connect to Local workspace") { model.connect() }
+                    .controlSize(.small)
+                    .disabled(model.connection == .connecting)
+            }
+            if case .failed(let m) = model.connection { Text(m).font(.caption).foregroundStyle(.red) }
         }
     }
 

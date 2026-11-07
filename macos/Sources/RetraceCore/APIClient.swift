@@ -36,7 +36,7 @@ public enum APIError: Error, Equatable, CustomStringConvertible {
         case .http(let status, let detail):
             let hint: String
             switch status {
-            case 401, 403: hint = "Not authorized. Pair this Mac again."
+            case 401, 403: hint = "Not authorized. Connect this Mac again."
             case 404: hint = "Not found."
             case 409: hint = "Conflict (already used or already exists)."
             case 410: hint = "Expired."
@@ -76,7 +76,7 @@ public struct APIBaseURL: Equatable, Sendable, CustomStringConvertible {
         guard comps.query == nil, comps.fragment == nil, comps.user == nil, comps.password == nil else {
             throw APIError.invalidBaseURL("must not contain credentials, query or fragment")
         }
-        let loopback = ["127.0.0.1", "localhost", "::1", "[::1]"].contains(host)
+        let loopback = Self.loopbackHosts.contains(host)
         switch scheme {
         case "https": break
         case "http": guard loopback else { throw APIError.invalidBaseURL("plain http is only allowed for localhost; use https") }
@@ -85,6 +85,9 @@ public struct APIBaseURL: Equatable, Sendable, CustomStringConvertible {
         guard let url = URL(string: s) else { throw APIError.invalidBaseURL("unparseable") }
         self.url = url
     }
+
+    static let loopbackHosts: Set<String> = ["127.0.0.1", "localhost", "::1", "[::1]"]
+    public var isLoopback: Bool { Self.loopbackHosts.contains(url.host?.lowercased() ?? "") }
 
     public var description: String { url.absoluteString }
 

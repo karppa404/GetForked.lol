@@ -16,88 +16,53 @@ struct BaseURLTests {
     }
 }
 
-@Suite("Pairing")
-struct PairingTests {
-    @Test func cancellationDuringPollDoesNotAcceptDeviceCredential() async throws {
-        struct CancellingTransport: HTTPTransport {
-            func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
-                withUnsafeCurrentTask { $0?.cancel() }
-                let body = Data(#"{"status":"approved","device_token":"never-store-this","project_id":"proj-1"}"#.utf8)
-                return (body, HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
-            }
-        }
-        let service = PairingService(client: APIClient(baseURL: try APIBaseURL(APIBaseURL.development), transport: CancellingTransport()))
-        let task = Task {
-            await service.waitForApproval(claim: ClaimResponse(claimId: "c-1", claimSecret: "s", status: "pending"), deviceName: "Mac", sleep: noSleep)
-        }
-        #expect(await task.value == .cancelled)
-    }
-
-    @Test func claimSendsCodeAndDeviceNameOnly() async throws {
-        let t = MockTransport([.json(200, #"{"claim_id":"c-1","claim_secret":"s3cret","status":"pending"}"#)])
-        let resp = try await PairingService(client: try client(t)).claim(code: "  ABCD-1234 ", deviceName: "Lab Mac")
-        #expect(resp == ClaimResponse(claimId: "c-1", claimSecret: "s3cret", status: "pending"))
+@Suite("Local connection")
+struct LocalConnectionTests {
+    @Test func connectSendsDeviceNameAndDecodesCredential() async throws {
+        let t = MockTransport([.json(201, #"{"device_token":"rtd_tok","project_id":"proj-9","device_id":"dev-1","api_base_url":"http://evil.example","project_name":"Local workspace"}"#)])
+        let cred = try await LocalConnectionService(client: try client(t)).connect(deviceName: "  Lab Mac ")
+        #expect(cred.deviceToken == "rtd_tok" && cred.projectId == "proj-9" && cred.deviceName == "Lab Mac")
+        #expect(cred.apiBaseURL == "http://127.0.0.1:8000", "credential stays bound to the URL we called")
+        #expect(cred.projectName == "Local workspace")
+        #expect(!cred.description.contains("rtd_tok"), "description must redact token")
         let req = t.requests[0]
-        #expect(req.url?.path == "/v1/pairings/claim" && req.httpMethod == "POST")
-        #expect(req.value(forHTTPHeaderField: "Authorization") == nil)
-        let body = try jsonObject(req.httpBody!)
-        #expect(body as NSDictionary == ["code": "ABCD-1234", "device_name": "Lab Mac"])
+        #expect(req.url?.absoluteString == "http://127.0.0.1:8000/v1/local/connect" && req.httpMethod == "POST")
+        #expect(req.value(forHTTPHeaderField: "Authorization") == nil && req.value(forHTTPHeaderField: "Origin") == nil)
+        #expect(try jsonObject(req.httpBody!) as NSDictionary == ["device_name": "Lab Mac"])
     }
 
-    @Test func claimIsNotRetried() async throws {
-        let t = MockTransport([.json(503, "{}"), .json(200, "{}")])
-        await #expect(throws: APIError.self) { try await PairingService(client: try client(t)).claim(code: "X", deviceName: "M") }
-        #expect(t.requestCount == 1, "single-use code must not be resent automatically")
+    @Test func optionalFieldsMayBeAbsent() async throws {
+        let t = MockTransport([.json(201, #"{"device_token":"rtd_tok","project_id":"proj-9","device_id":"dev-1"}"#)])
+        let cred = try await LocalConnectionService(client: try client(t)).connect(deviceName: "M")
+        #expect(cred.projectName == nil)
     }
 
-    @Test func pollsPendingThenApproved() async throws {
-        let t = MockTransport([
-            .json(200, #"{"status":"pending"}"#),
-            .json(503, "{}"),
-            .json(200, #"{"status":"pending"}"#),
-            .json(200, #"{"status":"approved","device_token":"tok-XYZ","project_id":"proj-9"}"#),
-        ])
-        let svc = PairingService(client: try client(t))
-        let claim = ClaimResponse(claimId: "c-1", claimSecret: "s3cret", status: "pending")
-        let outcome = await svc.waitForApproval(claim: claim, deviceName: "Lab Mac", sleep: noSleep)
-        guard case .approved(let cred) = outcome else { Issue.record("expected approval, got \(outcome)"); return }
-        #expect(cred.deviceToken == "tok-XYZ" && cred.projectId == "proj-9" && cred.apiBaseURL == "http://127.0.0.1:8000")
-        #expect(!cred.description.contains("tok-XYZ"), "description must redact token")
-        #expect(t.requestCount == 4)
-        #expect(t.requests[0].url?.path == "/v1/pairings/claims/c-1/poll")
-        #expect(try jsonObject(t.requests[0].httpBody!) as NSDictionary == ["claim_secret": "s3cret"])
+    @Test func rejectsBadResponsesAndIsNotRetried() async throws {
+        for body in [#"{"device_token":"","project_id":"p","device_id":"d"}"#, #"{"project_id":"p"}"#, #"{"device_token":"t","project_id":"../x","device_id":"d"}"#] {
+            let t = MockTransport([.json(201, body)])
+            await #expect(throws: APIError.self, "\(body)") { try await LocalConnectionService(client: try client(t)).connect(deviceName: "M") }
+        }
+        let t = MockTransport([.json(503, "{}"), .json(201, "{}")])
+        await #expect(throws: APIError.self) { try await LocalConnectionService(client: try client(t)).connect(deviceName: "M") }
+        #expect(t.requestCount == 1)
+        let forbidden = MockTransport([.json(403, #"{"error":"local_connect_loopback_only"}"#)])
+        await #expect(throws: APIError.http(status: 403, detail: "local_connect_loopback_only")) {
+            try await LocalConnectionService(client: try client(forbidden)).connect(deviceName: "M")
+        }
     }
 
-    @Test func expiryAndRejectionAreTerminal() async throws {
-        let claim = ClaimResponse(claimId: "c-1", claimSecret: "s", status: "pending")
-        let gone = MockTransport([.json(410, #"{"detail":"expired"}"#)])
-        #expect(await PairingService(client: try client(gone)).waitForApproval(claim: claim, deviceName: "M", sleep: noSleep) == .expired)
-        let denied = MockTransport([.json(403, "{}")])
-        if case .rejected = await PairingService(client: try client(denied)).waitForApproval(claim: claim, deviceName: "M", sleep: noSleep) {} else { Issue.record("expected rejection") }
-        let bad = MockTransport([.json(200, #"{"status":"approved"}"#)])
-        if case .failed = await PairingService(client: try client(bad)).waitForApproval(claim: claim, deviceName: "M", sleep: noSleep) {} else { Issue.record("approval without token must fail") }
+    @Test func refusesNonLoopbackServer() async throws {
+        let t = MockTransport([])
+        await #expect(throws: APIError.self) {
+            try await LocalConnectionService(client: try client(t, base: "https://api.example.com")).connect(deviceName: "M")
+        }
+        #expect(t.requestCount == 0)
+        await #expect(throws: APIError.self) { try await LocalConnectionService(client: try client(t)).connect(deviceName: "  ") }
     }
 
-    @Test func transientErrorsAreBounded() async throws {
-        let t = MockTransport(Array(repeating: .failure(URLError(.notConnectedToInternet)), count: 50))
-        let policy = PollPolicy(interval: .milliseconds(1), maxWait: .seconds(600), maxConsecutiveErrors: 3)
-        let outcome = await PairingService(client: try client(t)).waitForApproval(
-            claim: ClaimResponse(claimId: "c", claimSecret: "s", status: "pending"), deviceName: "M", policy: policy, sleep: noSleep)
-        if case .failed = outcome {} else { Issue.record("expected failure, got \(outcome)") }
-        #expect(t.requestCount == 3)
-    }
-
-    @Test func waitHonoursDeadline() async throws {
-        let t = MockTransport(Array(repeating: .json(200, #"{"status":"pending"}"#), count: 100))
-        let start = ContinuousClock.now
-        final class Ticker: @unchecked Sendable { var n = 0 }
-        let ticker = Ticker()
-        let fakeClock: @Sendable () -> ContinuousClock.Instant = { ticker.n += 1; return start + .seconds(ticker.n) }
-        let outcome = await PairingService(client: try client(t)).waitForApproval(
-            claim: ClaimResponse(claimId: "c", claimSecret: "s", status: "pending"), deviceName: "M",
-            policy: PollPolicy(interval: .seconds(1), maxWait: .seconds(5)), sleep: noSleep, clock: fakeClock)
-        #expect(outcome == .expired)
-        #expect(t.requestCount < 10)
+    @Test func legacyKeychainCredentialStillDecodes() throws {
+        let json = #"{"deviceToken":"t","projectId":"p","apiBaseURL":"http://127.0.0.1:8000","deviceName":"M","pairedAt":"2026-11-07T00:00:00.000Z"}"#
+        #expect(try JSONDecoder().decode(DeviceCredential.self, from: Data(json.utf8)).projectName == nil)
     }
 
     @Test func credentialStoreIsKeyedByServer() throws {

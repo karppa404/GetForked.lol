@@ -57,7 +57,7 @@ struct MenuContent: View {
             Divider()
             HStack {
                 Button("Sessions…") { open(WindowID.review) }
-                Button("Pair…") { open(WindowID.pairing) }
+                Button("Connection…") { open(WindowID.connection) }
                 Button("Scope & Privacy…") { open(WindowID.scope) }
                 Spacer()
                 Button("Quit") { NSApp.terminate(nil) }.disabled(recorder.isActive)

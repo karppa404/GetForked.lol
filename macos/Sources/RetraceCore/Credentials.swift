@@ -1,21 +1,25 @@
 import Foundation
 import Security
 
-/// Device credential issued after browser approval. Bound to the API base URL it came from,
+/// Device credential issued by the local connection (or legacy pairing). Bound to the API base URL it came from,
 /// so changing the base URL never sends this token to a different server.
 public struct DeviceCredential: Codable, Equatable, Sendable, CustomStringConvertible {
     public var deviceToken: String
     public var projectId: String
     public var apiBaseURL: String
     public var deviceName: String
+    /// When the credential was issued (name kept for Keychain compatibility).
     public var pairedAt: String
+    public var projectName: String?
 
-    public init(deviceToken: String, projectId: String, apiBaseURL: String, deviceName: String, pairedAt: String) {
+    public init(deviceToken: String, projectId: String, apiBaseURL: String, deviceName: String, pairedAt: String,
+                projectName: String? = nil) {
         self.deviceToken = deviceToken
         self.projectId = projectId
         self.apiBaseURL = apiBaseURL
         self.deviceName = deviceName
         self.pairedAt = pairedAt
+        self.projectName = projectName
     }
 
     public var description: String { "DeviceCredential(project: \(projectId), server: \(apiBaseURL), token: <redacted>)" }
