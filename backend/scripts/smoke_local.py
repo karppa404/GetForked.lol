@@ -32,7 +32,7 @@ def main():
 
         fixture = ROOT / "macos/Tests/RetraceCoreTests/Fixtures/synthetic-session"
         manifest = json.loads((fixture / "manifest.json").read_text())
-        manifest.update(id=str(uuid.uuid4()), project_id=project["id"], task="SYNTHETIC · Appearance workflow integration check", redaction={"reviewed": True})
+        manifest.update(id=str(uuid.uuid4()), project_id=project["id"], redaction={"reviewed": True})
         id_map = {item["id"]: str(uuid.uuid4()) for key in ["frames", "interactions", "network"] for item in manifest[key]}
         for key in ["frames", "interactions", "network"]:
             for item in manifest[key]:

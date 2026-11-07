@@ -39,8 +39,8 @@ public enum UploadError: Error, CustomStringConvertible {
     case projectMismatch
     public var description: String {
         switch self {
-        case .credentialMismatch: return "This Mac's credential was issued by a different server. Pair again for this API URL."
-        case .projectMismatch: return "This recording belongs to a different project than the paired device credential."
+        case .credentialMismatch: return "This Mac's credential was issued by a different server. Connect again for this API URL."
+        case .projectMismatch: return "This recording belongs to a different project than this Mac's device credential."
         }
     }
 }

@@ -33,6 +33,7 @@ from .models import (
     CorrectionPut,
     DevLoginRequest,
     GoogleLoginRequest,
+    LocalConnect,
     PairingApprove,
     PairingClaim,
     BoardPut,
@@ -49,6 +50,9 @@ from .storage import ArtifactStore
 log = logging.getLogger("retrace")
 
 _FORWARDING_HEADERS = ("x-forwarded-for", "forwarded", "x-real-ip", "x-forwarded-host", "cf-connecting-ip")
+# Same account the dashboard's developer sign-in uses (DevLoginRequest defaults).
+LOCAL_USER_EMAIL, LOCAL_USER_NAME = "dev@localhost", "Local Developer"
+LOCAL_PROJECT_NAME = "Local workspace"
 
 
 class _NullLedger:
@@ -73,6 +77,7 @@ class Services:
     claim_limiter: RateLimiter = field(default_factory=lambda: RateLimiter(10, 60))
     login_limiter: RateLimiter = field(default_factory=lambda: RateLimiter(20, 60))
     analyze_lock: threading.Lock = field(default_factory=threading.Lock)
+    local_lock: threading.Lock = field(default_factory=threading.Lock)
 
 
 class BodySizeLimit:
@@ -259,15 +264,19 @@ def create_app(
         user = services.auth.upsert_user("google", ident.subject, ident.email, ident.name)
         return _login_response(user)
 
-    @app.post("/v1/auth/dev")
-    def auth_dev(body: DevLoginRequest, request: Request):
+    def require_local_dev(request: Request, code: str) -> None:
+        """Dev auth enabled, loopback peer, loopback Host, not proxied."""
         if not settings.dev_auth_enabled or settings.is_production:
             raise ApiError(404, "not_found", "not found")
         host_header = request.headers.get("host", "")
         hostname = urlsplit(f"//{host_header}").hostname
         forwarded = any(h in request.headers for h in _FORWARDING_HEADERS)
         if not is_loopback_host(client_ip(request)) or not is_loopback_host(hostname) or forwarded:
-            raise ApiError(403, "dev_login_loopback_only", "development login is only available from loopback")
+            raise ApiError(403, code, "only available from loopback in local development")
+
+    @app.post("/v1/auth/dev")
+    def auth_dev(body: DevLoginRequest, request: Request):
+        require_local_dev(request, "dev_login_loopback_only")
         email = body.email.strip().lower()
         user = services.auth.upsert_user("dev", email, email, body.name)
         return _login_response(user)
@@ -323,7 +332,33 @@ def create_app(
         services.auth.revoke_device(device.device_id)
         return Response(status_code=204)
 
-    # ---------------- pairing ----------------
+    # ---------------- local one-click connection ----------------
+    @app.post("/v1/local/connect", status_code=201)
+    def local_connect(body: LocalConnect, request: Request):
+        require_local_dev(request, "local_connect_loopback_only")
+        # A web page on another origin can reach loopback; only native clients (no Origin) or
+        # loopback pages may connect.
+        origin = request.headers.get("origin")
+        if origin is not None and not is_loopback_host(urlsplit(origin).hostname):
+            raise ApiError(403, "local_connect_origin_forbidden", "cross-origin local connection refused")
+        if not services.login_limiter.allow(f"local:{client_ip(request)}"):
+            raise ApiError(429, "rate_limited", "too many connection attempts", headers={"Retry-After": "60"})
+        user = services.auth.upsert_user("dev", LOCAL_USER_EMAIL, LOCAL_USER_EMAIL, LOCAL_USER_NAME)
+        with services.local_lock:
+            project = next((p for p in services.state.list_projects(user.user_id) if p.name == LOCAL_PROJECT_NAME), None)
+            if project is None:
+                project = ProjectRec(str(uuid.uuid4()), LOCAL_PROJECT_NAME, user.user_id, iso(utcnow()))
+                services.state.upsert_project(project)
+        device_id, token = services.auth.issue_local_device(project.project_id, body.device_name, user.user_id)
+        return {
+            "device_token": token,
+            "device_id": device_id,
+            "project_id": project.project_id,
+            "project_name": project.name,
+            "api_base_url": str(request.base_url).rstrip("/"),
+        }
+
+    # ---------------- pairing (legacy compatibility; not user-facing) ----------------
     @app.post("/v1/pairings", status_code=201)
     def create_pairing(body: PairingCreate, user: User = Depends(current_user)):
         owned_project(body.project_id, user)

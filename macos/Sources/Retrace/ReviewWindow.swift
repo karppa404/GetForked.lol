@@ -10,8 +10,8 @@ struct ReviewWindow: View {
             List(selection: $model.selectedSessionId) {
                 ForEach(model.sessions) { s in
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(s.manifest.task).lineLimit(1)
-                        Text("\(s.manifest.app.name) · \(Self.date(s.manifest.startedAt))")
+                        Text("\(s.manifest.app.name) activity").lineLimit(1)
+                        Text(Self.date(s.manifest.startedAt))
                             .font(.caption).foregroundStyle(.secondary)
                         HStack(spacing: 6) {
                             if s.upload.remoteSessionId != nil { tag("Uploaded", .blue) }
@@ -24,7 +24,7 @@ struct ReviewWindow: View {
             }
             .overlay {
                 if model.sessions.isEmpty {
-                    Text("No local sessions yet.\nRecord one from the menu bar.").multilineTextAlignment(.center).foregroundStyle(.secondary)
+                    Text("No local sessions yet.\nStart observing an app from the menu bar.").multilineTextAlignment(.center).foregroundStyle(.secondary)
                 }
             }
             .navigationSplitViewColumnWidth(min: 220, ideal: 260)
@@ -85,7 +85,7 @@ struct SessionReviewView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(manifest.task).font(.title2.bold())
+            Text("\(manifest.app.name) activity").font(.title2.bold())
             Text("\(manifest.app.name) (\(manifest.app.bundleId)) · started \(ReviewWindow.date(manifest.startedAt)) · \(MenuContent.format(Double(manifest.durationMs) / 1000))")
                 .foregroundStyle(.secondary)
             Text("\(manifest.frames.count) frames · \(manifest.interactions.count) events · session \(manifest.id)")
@@ -210,7 +210,7 @@ struct SessionReviewView: View {
                     .toggleStyle(.checkbox)
                     Text("Changing any omission clears this confirmation.").font(.caption).foregroundStyle(.secondary)
                 }
-                pairingStatus
+                connectionStatus
                 if let msg = model.sessionMessages[session.id] {
                     Text(msg).font(.callout).textSelection(.enabled)
                 }
@@ -236,11 +236,17 @@ struct SessionReviewView: View {
         }
     }
 
-    @ViewBuilder private var pairingStatus: some View {
+    @ViewBuilder private var connectionStatus: some View {
         if let cred = model.credential {
-            Text("Destination: project \(cred.projectId) at \(cred.apiBaseURL)").font(.caption).foregroundStyle(.secondary)
+            Text("Destination: \(cred.projectName ?? "project \(cred.projectId)") at \(cred.apiBaseURL)").font(.caption).foregroundStyle(.secondary)
         } else {
-            Text("Not paired with \(model.apiBaseURLString). Use Pair… in the menu first.").font(.caption).foregroundStyle(.orange)
+            HStack {
+                Text("Not connected to \(model.apiBaseURLString).").font(.caption).foregroundStyle(.orange)
+                Button(model.connection == .connecting ? "Connecting…" : "Connect to Local workspace") { model.connect() }
+                    .controlSize(.small)
+                    .disabled(model.connection == .connecting)
+            }
+            if case .failed(let m) = model.connection { Text(m).font(.caption).foregroundStyle(.red) }
         }
     }
 

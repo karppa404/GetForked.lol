@@ -129,7 +129,6 @@ def _evidence_payload(manifest: Manifest, max_chars: int) -> dict:
     interactions, t2 = _bounded_list(interactions, budget // 2)
     network, t3 = _bounded_list(network, budget // 4)
     return {
-        "task": manifest.task[:500],
         "app": {"name": manifest.app.name, "bundle_id": manifest.app.bundle_id},
         "duration_ms": manifest.duration_ms,
         "frames": frames,
@@ -245,7 +244,6 @@ class Pipeline:
             wf_payload = {k: v for k, v in payload.items() if k != "network"}
             run_network = index.capture_status == "captured" and bool(manifest.network)
             net_payload = {
-                "task": payload["task"],
                 "interactions": [{"id": i["id"], "timestamp_ms": i["timestamp_ms"], "kind": i["kind"]} for i in payload["interactions"]],
                 "network": payload["network"],
             }
@@ -272,7 +270,7 @@ class Pipeline:
             draft = mechanical_draft(wf, net)
             pre = normalize_graph(draft, index, self.session_id)
             try:
-                reconciled = self._ask("reconcile", {"task": payload["task"], "draft": draft}, GraphDraftOut)
+                reconciled = self._ask("reconcile", {"draft": draft}, GraphDraftOut)
                 rec = normalize_graph(reconciled.model_dump(), index, self.session_id)
                 if not rec.graph["nodes"] and pre.graph["nodes"]:
                     raise ValueError("reconciliation removed every node")

@@ -302,6 +302,17 @@ class AuthStore:
             return PollResult(status)
 
     # ---- devices ----
+    def issue_local_device(self, project_id: str, device_name: str, user_id: str) -> tuple[str, str]:
+        """Issue a device token directly for the loopback-only local connection (no claim)."""
+        token = new_token("rtd")
+        device_id = str(uuid.uuid4())
+        with self.db.tx() as c:
+            c.execute(
+                "INSERT INTO devices VALUES (?,?,?,?,?,?,?,NULL,NULL)",
+                (device_id, project_id, device_name, hash_secret(token), "local", user_id, iso(utcnow())),
+            )
+        return device_id, token
+
     def device_for_token(self, token: str) -> Device | None:
         row = self.db.one("SELECT * FROM devices WHERE token_hash=?", (hash_secret(token),))
         if not row or row["revoked_at"]:

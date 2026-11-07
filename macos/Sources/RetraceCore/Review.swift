@@ -31,7 +31,7 @@ public enum ReviewError: Error, Equatable, CustomStringConvertible {
     public var description: String {
         switch self {
         case .notConfirmed: return "Review the session and confirm before uploading."
-        case .missingProject: return "Pair this Mac with a project before uploading."
+        case .missingProject: return "Connect this Mac to the Local workspace before uploading."
         case .invalid(let issues): return "Manifest failed validation: " + issues.map(\.description).joined(separator: "; ")
         }
     }

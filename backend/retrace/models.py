@@ -72,6 +72,15 @@ class PairingClaim(Strict):
         return v
 
 
+class LocalConnect(Strict):
+    device_name: str = Field(min_length=1, max_length=80)
+
+    @field_validator("device_name")
+    @classmethod
+    def _clean(cls, v: str) -> str:
+        return PairingClaim._clean(v)
+
+
 class PairingApprove(Strict):
     claim_id: UUID
 
@@ -264,7 +273,7 @@ class Manifest(Strict):
     id: UUID
     project_id: str = Field(min_length=1, max_length=64)
     app: AppInfo
-    task: str = Field(min_length=1, max_length=2000)
+    task: str = Field(default="", max_length=2000)  # legacy; recorders no longer ask for intent
     started_at: datetime
     duration_ms: int = Field(ge=0, le=6 * 3600 * 1000)
     interactions: list[Interaction]

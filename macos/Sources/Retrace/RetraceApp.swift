@@ -29,8 +29,8 @@ struct RetraceApp: App {
         }
         .defaultSize(width: 1100, height: 720)
 
-        Window("Pair with Room", id: WindowID.pairing) {
-            PairingView()
+        Window("Local Connection", id: WindowID.connection) {
+            ConnectionView()
                 .environmentObject(model)
                 .frame(width: 520)
         }
@@ -47,7 +47,7 @@ struct RetraceApp: App {
 enum WindowID {
     static let recorder = "recorder"
     static let review = "review"
-    static let pairing = "pairing"
+    static let connection = "connection"
     static let scope = "scope"
 }
 

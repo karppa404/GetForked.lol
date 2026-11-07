@@ -1,12 +1,12 @@
 # Retrace for macOS
 
-Menu bar recorder that observes **one** target app while you demonstrate a task, keeps the
+Menu bar recorder that passively observes **one** app you choose while you work, keeps the
 evidence on this Mac, lets you review and omit anything sensitive, and uploads only when
 you press **Upload & Analyze**.
 
 - SwiftPM package, Swift 6.2 toolchain, deployment target **macOS 14+**.
 - `RetraceCore`: pure logic (manifest v1, timestamps, key naming, validation, review and
-  redaction, local store, Keychain credential, pairing, multipart upload). No permissions needed.
+  redaction, local store, Keychain credential, local connection, multipart upload). No permissions needed.
 - `Retrace`: SwiftUI `MenuBarExtra` app (AppKit, ScreenCaptureKit, Accessibility).
 - `retrace-cli`: headless validator for session folders.
 
@@ -36,13 +36,15 @@ Screen Recording grants (and Keychain access) must be approved again.
 ## Using it
 
 1. Click the **!** in the menu bar. Choose a running app; Retrace never lists itself.
-2. Enter the task you will demonstrate. Grant **Accessibility** and **Screen Recording**
-   with the Request/Settings buttons. Nothing is requested until you press them.
-3. Press **Start Recording**. Retrace brings the app forward. Perform the task.
+2. Grant **Accessibility** and **Screen Recording** with the Request/Settings buttons.
+   Nothing is requested until you press them. There is no task or reason to type.
+3. Press **Start Observing App Activity**. Retrace brings the app forward. Go about your work.
+   Retrace never starts on its own or at login.
 4. Press **Stop & Review**. The Sessions window opens with thumbnails and an event list.
 5. Omit frames or events. Optionally strip window titles or element titles/labels.
    Then tick the confirmation box.
-6. Pair once (**Pair…**), then press **Upload & Analyze**.
+6. Press **Connect to Local workspace** once (in the Sessions window or **Connection…**), then
+   **Upload & Analyze**.
 
 ## Exact capture scope
 
@@ -94,16 +96,16 @@ omitted events are removed, and title stripping is applied. It sets `redaction.r
 (with omission counts) only after you tick the confirmation. Changing any omission clears it.
 Only the kept frames' files are attached, and each is re-hashed against the manifest first.
 
-## Room pairing and API (docs/INTEGRATION.md v1)
+## Local connection and API (docs/INTEGRATION.md v1)
 
-- API base URL is configurable in **Pair…** (default `http://127.0.0.1:8000`). Plain `http`
+- API base URL is configurable in **Connection…** (default `http://127.0.0.1:8000`). Plain `http`
   is rejected for non-loopback hosts so the device token never crosses a network unencrypted.
-- `POST /v1/pairings/claim {code, device_name}` → `{claim_id, claim_secret, status}`. This is
-  never retried automatically, because the code is single use.
-- `POST /v1/pairings/claims/{claim_id}/poll {claim_secret}` every 2 s until `approved`
-  (`device_token`, `project_id`). The wait is bounded: 10 min max. 404/410 or `expired`
-  count as expired, 401/403 or `rejected` as declined. Transient errors back off and give up
-  after 5 in a row. The claim secret is held only in memory.
+- `POST /v1/local/connect {device_name}` → `{device_token, project_id, device_id, project_name?, api_base_url?}`.
+  Only sent to a loopback base URL, never retried automatically (each call issues a token).
+  The credential is bound to the URL Retrace called, not to a server-supplied `api_base_url`.
+  The server answers only loopback requests with development sign-in enabled and puts
+  sessions in the dashboard's shared **Local workspace** project. No room code or browser
+  approval is involved. Disconnect removes the Keychain item.
 - The device token and project ID are stored in the Keychain (generic password, service
   `dev.retrace.recorder.device-credential`, account = API base URL,
   `WhenUnlockedThisDeviceOnly`), so they are bound to the server that issued them.
@@ -128,7 +130,7 @@ A server that rejects unknown fields needs to accept these.
 
 Automated: `swift build`, `scripts/test.sh` (manifest/fixture validation, timestamps, key
 naming, review and redaction, store hashing and permissions, capture policy, base URL rules,
-pairing state machine, upload multipart and retry bounds), plus `retrace-cli validate` on the fixture.
+local connection request/decoding, upload multipart and retry bounds), plus `retrace-cli validate` on the fixture.
 The real capture path (event monitor, Accessibility, ScreenCaptureKit) and real Keychain
 access need the runtime permissions above and a manual run. They are not covered by
 automated tests.

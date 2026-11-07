@@ -2,7 +2,12 @@ import AppKit
 import Combine
 import RetraceCore
 
-/// App-wide state: settings, pairing, local sessions and explicit uploads.
+enum ConnectionPhase: Equatable {
+    case disconnected, connecting, connected
+    case failed(String)
+}
+
+/// App-wide state: settings, local connection, local sessions and explicit uploads.
 @MainActor
 final class AppModel: ObservableObject {
     static let defaultsBaseURLKey = "apiBaseURL"
@@ -10,7 +15,7 @@ final class AppModel: ObservableObject {
 
     @Published var apiBaseURLString: String
     @Published var deviceName: String
-    @Published private(set) var pairing: PairingPhase = .unpaired
+    @Published private(set) var connection: ConnectionPhase = .disconnected
     @Published private(set) var credential: DeviceCredential?
     @Published private(set) var credentialLoaded = false
     @Published private(set) var sessions: [LocalSession] = []
@@ -22,8 +27,7 @@ final class AppModel: ObservableObject {
     let store: SessionStore
     let recorder: Recorder
     let credentialStore: CredentialStore
-    private var pairingTask: Task<Void, Never>?
-    private var pairingAttemptId: UUID?
+    private var connectTask: Task<Void, Never>?
 
     init(store: SessionStore = SessionStore(root: SessionStore.defaultRoot()),
          credentialStore: CredentialStore = KeychainCredentialStore()) {
@@ -50,7 +54,8 @@ final class AppModel: ObservableObject {
             apiBaseURLString = url.description
             UserDefaults.standard.set(url.description, forKey: Self.defaultsBaseURLKey)
             lastError = nil
-            cancelPairing()
+            connectTask?.cancel()
+            connectTask = nil
             reloadCredential()
         } catch {
             lastError = String(describing: error)
@@ -63,98 +68,75 @@ final class AppModel: ObservableObject {
 
     // MARK: Credential (Keychain)
 
-    /// Loads lazily (on opening Pairing or Review), so launching the app never touches the Keychain.
+    /// Loads lazily (on opening Connection or Review), so launching the app never touches the Keychain.
     func loadCredentialIfNeeded() {
         if !credentialLoaded { reloadCredential() }
     }
 
     private func reloadCredential() {
         credentialLoaded = true
-        guard let base = baseURL else { credential = nil; pairing = .unpaired; return }
+        guard let base = baseURL else { credential = nil; connection = .disconnected; return }
         do {
             credential = try credentialStore.load(apiBaseURL: base.description)
-            pairing = credential.map { .paired(projectId: $0.projectId) } ?? .unpaired
+            connection = credential == nil ? .disconnected : .connected
         } catch {
             credential = nil
-            pairing = .failed("Could not read Keychain: \(error)")
+            connection = .failed("Could not read Keychain: \(error)")
         }
     }
 
-    // MARK: Pairing
+    // MARK: Local connection
 
-    func startPairing(code: String) {
-        guard pairingTask == nil else { return }
+    func connect() {
+        guard connectTask == nil else { return }
         let base: APIBaseURL
-        do { base = try APIBaseURL(apiBaseURLString) } catch { pairing = .failed(String(describing: error)); return }
+        do { base = try APIBaseURL(apiBaseURLString) } catch { connection = .failed(String(describing: error)); return }
         saveDeviceName()
+        let service = LocalConnectionService(client: APIClient(baseURL: base))
         let name = deviceName
-        let service = PairingService(client: APIClient(baseURL: base))
-        pairing = .claiming
-        let attemptId = UUID()
-        pairingAttemptId = attemptId
-        pairingTask = Task { [weak self] in
-            defer {
-                Task { @MainActor in
-                    if self?.pairingAttemptId == attemptId {
-                        self?.pairingTask = nil
-                        self?.pairingAttemptId = nil
-                    }
-                }
-            }
-            let claim: ClaimResponse
-            do {
-                claim = try await service.claim(code: code, deviceName: name)
-            } catch {
-                await MainActor.run {
-                    guard !Task.isCancelled, self?.pairingAttemptId == attemptId else { return }
-                    self?.pairing = .failed(String(describing: error))
-                }
-                return
-            }
-            guard !Task.isCancelled, self?.pairingAttemptId == attemptId else { return }
-            await MainActor.run { self?.pairing = .pending(claimId: claim.claimId, deviceName: name) }
-            let outcome = await service.waitForApproval(claim: claim, deviceName: name)
+        connection = .connecting
+        connectTask = Task { [weak self] in
+            let result: Result<DeviceCredential, Error>
+            do { result = .success(try await service.connect(deviceName: name)) } catch { result = .failure(error) }
             await MainActor.run {
-                guard !Task.isCancelled, self?.pairingAttemptId == attemptId else { return }
-                self?.finishPairing(outcome)
+                // Disconnect or a base URL change cancels this attempt; never store its credential.
+                guard let self, !Task.isCancelled else { return }
+                self.connectTask = nil
+                switch result {
+                case .success(let cred):
+                    do {
+                        try self.credentialStore.save(cred)
+                        self.credential = cred
+                        self.credentialLoaded = true
+                        self.connection = .connected
+                    } catch {
+                        self.connection = .failed("Connected, but saving to Keychain failed: \(error). Not connected.")
+                    }
+                case .failure(let error):
+                    self.connection = .failed(Self.connectError(error, base))
+                }
             }
         }
     }
 
-    private func finishPairing(_ outcome: PairingOutcome) {
-        switch outcome {
-        case .approved(let cred):
-            do {
-                try credentialStore.save(cred)
-                credential = cred
-                credentialLoaded = true
-                pairing = .paired(projectId: cred.projectId)
-            } catch {
-                pairing = .failed("Approved, but saving to Keychain failed: \(error). Not paired.")
-            }
-        case .expired: pairing = .failed("Pairing code or claim expired. Create a new code in the browser.")
-        case .rejected(let m), .failed(let m): pairing = .failed(m)
-        case .cancelled: pairing = credential.map { .paired(projectId: $0.projectId) } ?? .unpaired
+    private static func connectError(_ error: Error, _ base: APIBaseURL) -> String {
+        switch error as? APIError {
+        case .transport?: return "No Retrace server answered at \(base). Start it locally, then try again."
+        case .http(404, _)?: return "This server does not allow local connections (development sign-in is off)."
+        default: return String(describing: error)
         }
     }
 
-    func cancelPairing() {
-        pairingTask?.cancel()
-        pairingTask = nil
-        pairingAttemptId = nil
-        if case .paired = pairing { return }
-        pairing = credential.map { .paired(projectId: $0.projectId) } ?? .unpaired
-    }
-
-    func unpair() {
-        cancelPairing()
+    func disconnect() {
+        connectTask?.cancel()
+        connectTask = nil
         guard let base = baseURL else { return }
         do {
             try credentialStore.delete(apiBaseURL: base.description)
             credential = nil
-            pairing = .unpaired
+            connection = .disconnected
         } catch {
-            pairing = .failed("Could not remove Keychain item: \(error)")
+            connection = .failed("Could not remove Keychain item: \(error)")
         }
     }
 
@@ -203,7 +185,7 @@ final class AppModel: ObservableObject {
         guard !busySessionIds.contains(id), let session = session(id) else { return }
         guard let base = baseURL else { sessionMessages[id] = "Invalid API base URL."; return }
         guard let cred = credential, cred.apiBaseURL == base.description else {
-            sessionMessages[id] = "Pair this Mac with \(base) first."
+            sessionMessages[id] = "Connect this Mac to the Local workspace at \(base) first."
             return
         }
         let manifest: SessionManifest
