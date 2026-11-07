@@ -30,6 +30,7 @@ export interface Suggestion {
 
 export interface Graph {
   schema_version: 1;
+  preview_sample?: boolean;
   session_id?: string;
   graph_version?: number;
   nodes: GraphNode[];
@@ -139,6 +140,7 @@ export function validateGraph(raw: unknown): ValidationResult {
     errors: [],
     graph: {
       schema_version: 1,
+      preview_sample: raw.preview_sample === true,
       session_id: typeof raw.session_id === "string" ? raw.session_id : undefined,
       graph_version: typeof raw.graph_version === "number" ? raw.graph_version : undefined,
       nodes,

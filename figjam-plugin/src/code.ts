@@ -53,6 +53,7 @@ async function importGraph(graph: Graph): Promise<number> {
     created.push(c);
   }
   const notes: [string, string][] = [
+    ...(graph.preview_sample ? [["SAMPLE WORKFLOW", "Illustrative preview data. This workflow was not recorded or analyzed."] as [string, string]] : []),
     [`Network: ${graph.network_status}`, graph.network_status === "not_captured" ? "Network capture did not run; API calls are unknown, not absent." : ""],
     ...graph.ambiguities.map((a): [string, string] => ["Ambiguity", a.message]),
     ...graph.suggestions.map((s): [string, string] => ["Suggestion (not observed)", s.label + (s.rationale ? ` — ${s.rationale}` : "")]),

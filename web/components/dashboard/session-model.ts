@@ -68,6 +68,7 @@ export const TYPE_LABEL: Record<string, string> = {
   screen: "Screen",
   action: "Action",
   endpoint: "API endpoint",
+  api_call: "API endpoint",
   api: "API",
   service: "Service",
   request: "Request",

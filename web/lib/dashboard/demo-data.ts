@@ -203,13 +203,13 @@ function build(seed: SessionSeed, sessionIndex: number): BuiltSession {
           network.push(event);
           let endpoint = endpointNodes.get(call.endpoint);
           if (!endpoint) {
-            endpoint = { id: `node-${String(++nodeN).padStart(2, "0")}`, type: "endpoint", label: call.endpoint, evidence_ids: [] };
+            endpoint = { id: `node-${String(++nodeN).padStart(2, "0")}`, type: "api_call", label: call.endpoint, evidence_ids: [] };
             endpointNodes.set(call.endpoint, endpoint);
             labelToId.set(call.endpoint, endpoint.id);
             nodes.push(endpoint);
           }
           endpoint.evidence_ids.push(event.id);
-          addEdge(node.id, endpoint.id, `${call.status}`, [interaction.id, event.id], call.candidate ? "candidate" : "observed");
+          addEdge(node.id, endpoint.id, `${call.status}`, [interaction.id, event.id], "candidate");
         });
       }
       prevNode = node;

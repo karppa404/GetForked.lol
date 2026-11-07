@@ -6,7 +6,7 @@ import { createBackendWorkspace } from "@/lib/dashboard/backend";
 import { resolveEnvironment, type DashboardEnvironment } from "@/lib/dashboard/config";
 import { createApiClient } from "@/lib/dashboard/http";
 import { createPreviewStore, createPreviewWorkspace } from "@/lib/dashboard/preview";
-import { useRoute } from "@/lib/dashboard/hooks";
+import { useRealtimeStatus, useRoute } from "@/lib/dashboard/hooks";
 import type { AuthSession } from "@/lib/dashboard/types";
 import type { Workspace } from "@/lib/dashboard/workspace";
 import { ProjectView } from "./project-view";
@@ -56,6 +56,8 @@ export function DashboardApp() {
     return { client, workspace: createBackendWorkspace(client) };
   }, [env?.apiBaseUrl, mode.kind]);
 
+  useEffect(() => () => { void backend?.workspace.dispose?.(); }, [backend]);
+
   const onSignedIn = useCallback(
     (auth: AuthSession) => {
       if (!env?.apiBaseUrl) return;
@@ -78,11 +80,13 @@ export function DashboardApp() {
     setMode({ kind: "signin" });
   }, []);
 
-  const signOut = useCallback(() => {
+  const signOut = useCallback(async () => {
+    await backend?.workspace.dispose?.();
+    if (backend) await backend.client.post("/v1/auth/logout").catch(() => {});
     if (env?.apiBaseUrl) clearAuth(env.apiBaseUrl);
     window.location.hash = "#/";
     setMode({ kind: "signin" });
-  }, [env?.apiBaseUrl]);
+  }, [env?.apiBaseUrl, backend]);
 
   const ctx = useMemo<DashboardContextValue | null>(() => {
     if (!env) return null;
@@ -136,6 +140,7 @@ function Shell() {
 function TopBar() {
   const { workspace, user, signOut, env } = useDashboard();
   const preview = workspace.kind === "preview";
+  const live = useRealtimeStatus(workspace);
   return (
     <header className="rd-topbar">
       <Brand compact />
@@ -146,7 +151,7 @@ function TopBar() {
         ) : (
           <span className="rd-api-host" title={`Connected to ${env.apiBaseUrl}`}>
             <span aria-hidden="true" className="rd-live-dot" />
-            {env.apiBaseUrl?.replace(/^https?:\/\//, "")}
+            {live === "live" ? "Live updates" : live === "connecting" ? "Connecting live updates…" : "API updates"}
           </span>
         )}
         {user && (

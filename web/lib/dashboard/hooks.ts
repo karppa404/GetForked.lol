@@ -2,6 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { isAbort } from "./http";
+import type { Workspace } from "./workspace";
+
+const noSubscription = () => () => {};
+const noRealtime = () => "unavailable" as const;
+export function useRealtimeStatus(workspace: Workspace) {
+  return useSyncExternalStore(workspace.subscribe ?? noSubscription, workspace.realtimeStatus ?? noRealtime, noRealtime);
+}
 
 // ---------- hash routing (static-host friendly, deep-linkable, back button works) ----------
 

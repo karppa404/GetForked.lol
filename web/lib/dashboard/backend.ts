@@ -2,6 +2,7 @@ import { normalizeGraph, normalizeNetworkStatus } from "./graph";
 import { ApiError, type ApiClient } from "./http";
 import type { AuthSession, Correction, Job, JobStage, Pairing, PairingClaim, Project, SessionDetail, SessionSummary } from "./types";
 import type { Workspace } from "./workspace";
+import { createRealtime } from "./realtime";
 
 type Raw = Record<string, unknown>;
 const obj = (v: unknown): Raw => (v && typeof v === "object" && !Array.isArray(v) ? (v as Raw) : {});
@@ -74,6 +75,7 @@ export function normalizeSessionDetail(raw: unknown): SessionDetail {
   const networkStatus = normalizeNetworkStatus(pick("network_status") ?? graph?.network_status ?? (arr(pick("network")).length ? "observed" : "not_captured"));
   return {
     ...summary,
+    analysis_provider: s(obj(obj(o.graph ?? analysis.graph).generated_by).provider) || undefined,
     network_status: networkStatus,
     interactions: arr(pick("interactions")).map(obj).map((i) => ({ ...(i as object), id: s(i.id), timestamp_ms: n(i.timestamp_ms), kind: s(i.kind, "event") })),
     frames: arr(pick("frames")).map(obj).map((f) => ({
@@ -121,13 +123,19 @@ export function signInForDevelopment(client: ApiClient, signal?: AbortSignal) {
 }
 
 export function createBackendWorkspace(client: ApiClient): Workspace {
+  const realtime = createRealtime(client);
   return {
     kind: "backend",
+    subscribe: realtime.subscribe,
+    realtimeStatus: realtime.status,
+    dispose: realtime.dispose,
     async listProjects(signal) {
       return list(await client.get("/v1/projects", { signal }), "projects").map(normalizeProject);
     },
     async createProject(name, signal) {
-      return normalizeProject(await client.post("/v1/projects", { name }, { signal }));
+      const project = normalizeProject(await client.post("/v1/projects", { name }, { signal }));
+      await realtime.grant(project.id).catch(() => {});
+      return project;
     },
     async listSessions(projectId, signal) {
       return list(await client.get(`/v1/projects/${path(projectId)}/sessions`, { signal }), "sessions").map(normalizeSummary);
@@ -135,20 +143,19 @@ export function createBackendWorkspace(client: ApiClient): Workspace {
     async getSession(id, signal) {
       return normalizeSessionDetail(await client.get(`/v1/sessions/${path(id)}`, { signal }));
     },
-    async analyze(id, signal) {
-      const r = obj(await client.post(`/v1/sessions/${path(id)}/analyze`, {}, { signal }));
+    async analyze(id, signal, rerun = false) {
+      const r = obj(await client.post(`/v1/sessions/${path(id)}/analyze`, { rerun }, { signal }));
       return { job_id: s(r.job_id), status: s(r.status, "queued") };
     },
     async correctLabel(sessionId, elementId, label, signal) {
       const r = obj(await client.put(`/v1/sessions/${path(sessionId)}/corrections/${path(elementId)}`, { label }, { signal }));
       return { element_id: s(r.element_id, elementId), label: s(r.label, label), updated_at: s(r.updated_at) || undefined, author: s(r.author) || undefined };
     },
-    async clearCorrection(sessionId, elementId, originalLabel, signal) {
-      // The v1 contract has no DELETE; writing the agent's label back is the closest equivalent.
-      await client.put(`/v1/sessions/${path(sessionId)}/corrections/${path(elementId)}`, { label: originalLabel }, { signal });
+    async clearCorrection(sessionId, elementId, _originalLabel, signal) {
+      await client.delete(`/v1/sessions/${path(sessionId)}/corrections/${path(elementId)}`, { signal });
     },
     async getGraphExport(sessionId, signal) {
-      return client.get(`/v1/sessions/${path(sessionId)}/graph`, { signal });
+      return client.get(`/v1/sessions/${path(sessionId)}/graph?download=1`, { signal });
     },
     async saveBoardUrl(sessionId, url, signal) {
       // Not in contract v1. Try a conventional endpoint and report "unsupported" honestly.

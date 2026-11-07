@@ -2,10 +2,18 @@ import { describe, expect, it } from "vitest";
 import { PREVIEW_SESSIONS } from "../demo-data";
 import { applyCorrections, citationIndex, evidenceItems, layeredLayout, networkView, normalizeGraph, validateGraph, workflowView } from "../graph";
 import type { Graph } from "../types";
+import { validateGraph as validateFigJamGraph } from "../../../../figjam-plugin/src/validate";
 
 const evidenceSet = (i: number) => new Set(evidenceItems(PREVIEW_SESSIONS[i].detail).map((e) => e.id));
 
 describe("sample graphs", () => {
+  it("preview exports use the same node types and association rules as the FigJam importer", () => {
+    for (const sample of PREVIEW_SESSIONS) {
+      const result = validateFigJamGraph({ ...sample.graph, preview_sample: true });
+      expect(result.errors).toEqual([]);
+      expect(result.graph?.preview_sample).toBe(true);
+    }
+  });
   it("every preview graph validates against its own evidence", () => {
     PREVIEW_SESSIONS.forEach((s, i) => {
       const result = validateGraph(s.graph, evidenceSet(i));
@@ -15,7 +23,7 @@ describe("sample graphs", () => {
 
   it("only sessions with observed network contain endpoint nodes", () => {
     for (const s of PREVIEW_SESSIONS) {
-      const hasEndpoints = s.graph.nodes.some((n) => n.type === "endpoint");
+      const hasEndpoints = s.graph.nodes.some((n) => n.type === "api_call");
       expect(hasEndpoints).toBe(s.graph.network_status === "observed");
       if (s.graph.network_status !== "observed") expect(s.detail.network).toHaveLength(0);
     }
@@ -84,9 +92,9 @@ describe("views and layout", () => {
   it("splits workflow and network, with context actions in the network view", () => {
     const g = PREVIEW_SESSIONS[0].graph;
     const wf = workflowView(g);
-    expect(wf.nodes.every((n) => n.type !== "endpoint")).toBe(true);
+    expect(wf.nodes.every((n) => n.type !== "api_call")).toBe(true);
     const net = networkView(g);
-    expect(net.nodes.some((n) => n.type === "endpoint")).toBe(true);
+    expect(net.nodes.some((n) => n.type === "api_call")).toBe(true);
     for (const id of net.contextNodeIds) expect(g.nodes.find((n) => n.id === id)?.type).toBe("action");
     expect(networkView(PREVIEW_SESSIONS[1].graph).nodes).toHaveLength(0);
   });

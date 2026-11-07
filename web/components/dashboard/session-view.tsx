@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { POLL } from "@/lib/dashboard/config";
 import { exportFilename, formatDuration, validateGraph } from "@/lib/dashboard/graph";
 import { describeError, isAbort } from "@/lib/dashboard/http";
-import { routeHref, useBoundedPolling, useResource } from "@/lib/dashboard/hooks";
+import { routeHref, useBoundedPolling, useRealtimeStatus, useResource } from "@/lib/dashboard/hooks";
 import type { Correction, SessionDetail } from "@/lib/dashboard/types";
 import { EvidenceTimeline } from "./evidence-timeline";
 import { GraphPanel } from "./graph-panel";
@@ -20,6 +20,7 @@ type ExportState = { state: "idle" } | { state: "busy" } | { state: "invalid"; e
 
 export function SessionView({ projectId, sessionId }: { projectId: string; sessionId: string }) {
   const { workspace } = useDashboard();
+  const live = useRealtimeStatus(workspace) === "live";
   const session = useResource(`session:${workspace.kind}:${sessionId}`, (signal) => workspace.getSession(sessionId, signal));
   const projects = useResource(`projects:${workspace.kind}`, (signal) => workspace.listProjects(signal));
   const projectName = projects.data?.find((p) => p.id === projectId)?.name ?? "Project";
@@ -37,7 +38,7 @@ export function SessionView({ projectId, sessionId }: { projectId: string; sessi
 
   const running = isRunning(session.data);
   const poll = useBoundedPolling({
-    enabled: running || (workspace.kind === "backend" && Boolean(session.data)),
+    enabled: !live && (running || (workspace.kind === "backend" && Boolean(session.data))),
     intervalMs: running ? POLL.jobIntervalMs : POLL.reviewIntervalMs,
     maxAttempts: running ? POLL.jobMaxAttempts : POLL.reviewMaxAttempts,
     resetKey: `${sessionId}:${session.data?.job?.id ?? "none"}:${running}`,
@@ -99,7 +100,7 @@ export function SessionView({ projectId, sessionId }: { projectId: string; sessi
   async function analyze() {
     setAnalyzeState({ busy: true });
     try {
-      const r = await workspace.analyze(sessionId);
+      const r = await workspace.analyze(sessionId, undefined, Boolean(latest.current?.graph));
       setData((s) => s && { ...s, status: "queued", job: { id: r.job_id, status: r.status || "queued", stages: (s.job?.stages ?? []).map((st) => ({ ...st, status: "pending" })), error: null } });
       const fresh = await workspace.getSession(sessionId).catch(() => null);
       if (fresh) setData(() => fresh);
@@ -184,10 +185,11 @@ export function SessionView({ projectId, sessionId }: { projectId: string; sessi
       </header>
 
       {analyzeState.error ? <ErrorNotice error={analyzeState.error} title="Couldn’t start analysis" onRetry={analyze} /> : null}
+      {s.analysis_provider === "offline_heuristic" && <div className="rd-notice" role="note"><p><strong>Development analysis.</strong> This graph was generated with deterministic rules. No Nemotron model was called.</p></div>}
       <ExportFeedback state={exportState} onDismiss={() => setExportState({ state: "idle" })} preview={workspace.kind === "preview"} />
       {s.job && (running || s.job.status === "failed") && <JobProgress job={s.job} poll={poll} onRetryPoll={poll.restart} />}
       {!running && workspace.kind === "backend" && <p className="rd-fine rd-session-foot">
-        {poll.status === "exhausted" ? <>Review updates paused. <button type="button" className="rd-link-btn" onClick={poll.restart}>Resume updates</button></> : poll.status === "paused" ? "Review updates pause while this tab is hidden." : "Review changes refresh every 5 seconds while this tab is visible."}
+        {live ? "Live review updates connected." : poll.status === "exhausted" ? <>Review updates paused. <button type="button" className="rd-link-btn" onClick={poll.restart}>Resume updates</button></> : poll.status === "paused" ? "Review updates pause while this tab is hidden." : "Review changes refresh every 5 seconds while this tab is visible."}
       </p>}
       {!running && poll.status === "error" && <ErrorNotice error={poll.error} title="Review updates stopped" onRetry={poll.restart} />}
       {session.error && session.data ? <ErrorNotice error={session.error} title="Showing the last loaded version" onRetry={session.reload} /> : null}

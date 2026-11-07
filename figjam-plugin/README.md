@@ -24,6 +24,10 @@ npm install
 npm run typecheck && npm test && npm run build    # writes dist/code.js
 ```
 
+First create a development plugin in Figma and replace the placeholder `id` in `manifest.json`
+with the ID Figma assigns to your plugin. The repository's `retrace-graph-import-dev` is not a
+registered plugin ID. See [Figma's manifest documentation](https://developers.figma.com/docs/plugins/manifest/).
+
 In the Figma desktop app, open a FigJam file → Plugins → Development → Import plugin from
 manifest… → choose `figjam-plugin/manifest.json`. Run "Retrace Graph Import" and pick the JSON.
 `test/fixtures/backend-graph.json` is a real backend output you can use to try it.

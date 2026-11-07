@@ -132,6 +132,7 @@ export interface Correction {
 }
 
 export interface SessionDetail extends SessionSummary {
+  analysis_provider?: string;
   interactions: Interaction[];
   frames: Frame[];
   network: NetworkEvent[];

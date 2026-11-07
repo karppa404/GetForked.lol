@@ -10,6 +10,18 @@ function jsonResponse(body: unknown, status = 200) {
 }
 
 describe("api client", () => {
+  it("uses the backend's rerun, correction-delete, and corrected graph export contracts", async () => {
+    const fetchImpl = vi.fn(async (_url: Parameters<typeof fetch>[0], init?: RequestInit) => init?.method === "DELETE" ? new Response(null, { status: 204 }) : jsonResponse({ job_id: "j", status: "queued" }));
+    const ws = createBackendWorkspace(createApiClient({ baseUrl: "https://api.example.com", fetchImpl }));
+    await ws.analyze("s");
+    await ws.analyze("s", undefined, true);
+    await ws.clearCorrection("s", "screen:e", "old");
+    await ws.getGraphExport("s");
+    expect(JSON.parse(fetchImpl.mock.calls[0][1]!.body as string)).toEqual({ rerun: false });
+    expect(JSON.parse(fetchImpl.mock.calls[1][1]!.body as string)).toEqual({ rerun: true });
+    expect(fetchImpl.mock.calls[2][1]?.method).toBe("DELETE");
+    expect(fetchImpl.mock.calls[3][0]).toBe("https://api.example.com/v1/sessions/s/graph?download=1");
+  });
   it("keeps the timeout active while reading response bodies", async () => {
     const client = createApiClient({
       baseUrl: "https://api.example.com", timeoutMs: 20,
