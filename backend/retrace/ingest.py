@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import shutil
 from dataclasses import dataclass
@@ -29,6 +30,46 @@ CHUNK = 64 * 1024
 class IngestResult:
     session: SessionRec
     server_redactions: int
+    duplicate: bool = False
+
+
+_session_locks: dict[str, asyncio.Lock] = {}
+
+
+def _lock_for(session_id: str) -> asyncio.Lock:
+    if len(_session_locks) > 1000:
+        for k in [k for k, v in _session_locks.items() if not v.locked()]:
+            del _session_locks[k]
+    return _session_locks.setdefault(session_id, asyncio.Lock())
+
+
+def session_records(manifest: Manifest, device_id: str, store: ArtifactStore) -> tuple[SessionRec, list[EvidenceRefRec]]:
+    """Shared-state records for an already sanitized manifest."""
+    rec = SessionRec(
+        session_id=str(manifest.id),
+        project_id=manifest.project_id,
+        status="uploaded",
+        app_name=manifest.app.name,
+        bundle_id=manifest.app.bundle_id,
+        task=manifest.task,
+        started_at=iso(manifest.started_at),
+        duration_ms=manifest.duration_ms,
+        frame_count=len(manifest.frames),
+        interaction_count=len(manifest.interactions),
+        network_count=len(manifest.network),
+        network_status=manifest.network_status,
+        uploaded_at=iso(utcnow()),
+        uploaded_by_device=device_id,
+    )
+    refs = [
+        EvidenceRefRec(str(f.id), "frame", f.timestamp_ms, store.frame_relpath(str(f.id), _ext(f.filename)), f"{f.width}x{f.height} frame")
+        for f in manifest.frames
+    ]
+    refs += [EvidenceRefRec(str(i.id), "interaction", i.timestamp_ms, None, _summary_interaction(i)) for i in manifest.interactions]
+    for n in manifest.network:
+        path = urlsplit(n.url).path or "/"
+        refs.append(EvidenceRefRec(str(n.id), "network", n.timestamp_ms, None, f"{n.method.upper()} {path} {n.status or ''}".strip()[:200]))
+    return rec, refs
 
 
 def _validation_message(exc: ValidationError) -> list[dict]:
@@ -44,12 +85,7 @@ def _ext(filename: str) -> str:
 
 
 def _summary_interaction(i) -> str:
-    target = ""
-    if isinstance(i.accessibility, dict):
-        for k in ("title", "label", "role"):
-            if isinstance(i.accessibility.get(k), str):
-                target = i.accessibility[k]
-                break
+    target = (i.accessibility.display() if i.accessibility else None) or ""
     return f"{i.kind} {i.key or target}".strip()[:200]
 
 
@@ -76,6 +112,8 @@ async def ingest_session(
         raise ApiError(400, "bad_multipart", "multipart body could not be parsed within limits") from None
 
     staging = None
+    locked = False
+    lock = None
     try:
         unknown = {k for k in form.keys() if k not in {"manifest", "files"}}
         if unknown:
@@ -100,8 +138,25 @@ async def ingest_session(
         if len(manifest.network) > settings.max_network:
             raise ApiError(413, "too_many_network_entries", f"at most {settings.max_network} network entries")
         session_id = str(manifest.id)
-        if state.get_session(session_id) or store.exists(manifest.project_id, session_id):
-            raise ApiError(409, "session_exists", "a session with this id was already uploaded")
+        manifest_digest = hashlib.sha256(raw_manifest.encode()).hexdigest()
+        lock = _lock_for(session_id)
+        await lock.acquire()
+        locked = True
+        existing = state.get_session(session_id)
+        if existing and existing.project_id != manifest.project_id:
+            raise ApiError(409, "session_exists", "a session with this id belongs to another project")
+        if store.exists(manifest.project_id, session_id):
+            marker = store.read_upload_marker(manifest.project_id, session_id)
+            if not marker or marker.get("manifest_sha256") != manifest_digest:
+                raise ApiError(409, "session_exists", "a different session with this id was already uploaded")
+            # Safe retry of an identical upload: no new files are written.
+            if existing is None:
+                stored = store.load_manifest(manifest.project_id, session_id)
+                rec, refs = session_records(stored, marker.get("device_id", device.device_id), store)
+                state.upsert_session(rec)
+                state.add_evidence_refs(session_id, refs)
+                existing = rec
+            return IngestResult(existing, 0, duplicate=True)
 
         uploads = form.getlist("files")
         frames_by_name = {f.filename: f for f in manifest.frames}
@@ -162,48 +217,24 @@ async def ingest_session(
             if after != before:
                 redactions += 1
             clean_network.append(after)
-        stored = manifest.model_dump(mode="json")
-        stored["network"] = clean_network
-        stored["server_redactions"] = redactions
-        store.write_manifest(staging, {k: v for k, v in stored.items() if k != "server_redactions"})
+        clean = manifest.model_dump(mode="json")
+        clean["network"] = clean_network
+        store.write_manifest(staging, clean)
+        store.write_upload_marker(staging, {"manifest_sha256": manifest_digest, "device_id": device.device_id})
         final_dir = store.commit(manifest.project_id, session_id, staging)
         staging = None
 
-        now = iso(utcnow())
-        rec = SessionRec(
-            session_id=session_id,
-            project_id=manifest.project_id,
-            status="uploaded",
-            app_name=manifest.app.name,
-            bundle_id=manifest.app.bundle_id,
-            task=manifest.task,
-            started_at=iso(manifest.started_at),
-            duration_ms=manifest.duration_ms,
-            frame_count=len(manifest.frames),
-            interaction_count=len(manifest.interactions),
-            network_count=len(manifest.network),
-            network_capture=manifest.capture_status,
-            uploaded_at=now,
-            uploaded_by_device=device.device_id,
-        )
-        refs = [
-            EvidenceRefRec(str(f.id), "frame", f.timestamp_ms, store.frame_relpath(str(f.id), _ext(f.filename)), f"{f.width}x{f.height} frame")
-            for f in manifest.frames
-        ]
-        refs += [EvidenceRefRec(str(i.id), "interaction", i.timestamp_ms, None, _summary_interaction(i)) for i in manifest.interactions]
-        for n in clean_network:
-            path = urlsplit(n["url"]).path or "/"
-            refs.append(
-                EvidenceRefRec(n["id"], "network", n["timestamp_ms"], None, f"{n['method'].upper()} {path} {n.get('status') or ''}".strip()[:200])
-            )
+        rec, refs = session_records(Manifest.model_validate(clean), device.device_id, store)
         try:
             state.upsert_session(rec)
             state.add_evidence_refs(session_id, refs)
         except Exception:
             shutil.rmtree(final_dir, ignore_errors=True)
             raise
-        return IngestResult(rec, redactions)
+        return IngestResult(rec, redactions, duplicate=False)
     finally:
         if staging is not None:
             store.discard(staging)
+        if locked and lock is not None:
+            lock.release()
         await form.close()

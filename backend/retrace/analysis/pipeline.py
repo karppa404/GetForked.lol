@@ -46,7 +46,7 @@ class ActionOut(_Loose):
 class WorkflowOut(_Loose):
     screens: list[ScreenOut] = Field(default_factory=list, max_length=300)
     actions: list[ActionOut] = Field(default_factory=list, max_length=1000)
-    ambiguities: list[str] = Field(default_factory=list, max_length=100)
+    ambiguities: list[Any] = Field(default_factory=list, max_length=100)
 
 
 class ApiCallOut(_Loose):
@@ -64,7 +64,7 @@ class AssociationOut(_Loose):
 class NetworkOut(_Loose):
     api_calls: list[ApiCallOut] = Field(default_factory=list, max_length=500)
     associations: list[AssociationOut] = Field(default_factory=list, max_length=1000)
-    ambiguities: list[str] = Field(default_factory=list, max_length=100)
+    ambiguities: list[Any] = Field(default_factory=list, max_length=100)
 
 
 class GraphDraftOut(_Loose):
@@ -111,9 +111,10 @@ def _evidence_payload(manifest: Manifest, max_chars: int) -> dict:
                 "key": i.key,
                 "x": i.x,
                 "y": i.y,
-                "accessibility": i.accessibility,
+                "accessibility": i.accessibility.model_dump(exclude_none=True) if i.accessibility else None,
                 "before_frame_id": str(i.before_frame_id) if i.before_frame_id else None,
                 "after_frame_id": str(i.after_frame_id) if i.after_frame_id else None,
+                "delayed_frame_id": str(i.delayed_frame_id) if i.delayed_frame_id else None,
             }.items()
             if v is not None
         }
@@ -141,7 +142,7 @@ def _evidence_payload(manifest: Manifest, max_chars: int) -> dict:
 def select_frames(manifest: Manifest, limit: int) -> list[str]:
     referenced: list[str] = []
     for i in manifest.interactions:
-        for ref in (i.before_frame_id, i.after_frame_id):
+        for ref in (i.before_frame_id, i.after_frame_id, i.delayed_frame_id):
             if ref and str(ref) not in referenced:
                 referenced.append(str(ref))
     pool = referenced or [str(f.id) for f in manifest.frames]
@@ -301,7 +302,7 @@ class Pipeline:
                 self._stage("publish", "fallback", {"error": str(exc)[:300]})
 
             graph = final.graph
-            graph["ambiguities"] = (graph["ambiguities"] + [p for p in self.problems if p])[:50]
+            graph["ambiguities"] = (graph["ambiguities"] + [{"message": p} for p in self.problems if p])[:50]
             assert_publishable(graph, index)
             return self._publish(graph)
         except BudgetExceeded as exc:

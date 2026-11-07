@@ -64,7 +64,10 @@ def build_messages(stage: str, payload: dict, images: list[str] | None = None) -
 
 def parse_messages(messages: list[dict]) -> tuple[str, dict]:
     stage = messages[0]["content"].rsplit(STAGE_MARKER, 1)[1].strip()
-    content = messages[-1]["content"]
-    if isinstance(content, list):
-        content = next(p["text"] for p in content if p.get("type") == "text")
-    return stage, json.loads(content.split(INPUT_MARKER, 1)[1])
+    for m in messages[1:]:
+        content = m["content"]
+        if isinstance(content, list):
+            content = next((p["text"] for p in content if p.get("type") == "text"), "")
+        if m.get("role") == "user" and INPUT_MARKER in content:
+            return stage, json.loads(content.split(INPUT_MARKER, 1)[1])
+    raise ValueError("no input payload in messages")

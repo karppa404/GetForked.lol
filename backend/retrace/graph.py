@@ -194,8 +194,19 @@ def normalize_graph(draft: dict, index: EvidenceIndex, session_id: str) -> Norma
             else:
                 n["network_status"] = "observed" if n["id"] in api_linked else "none_observed"
 
-    ambiguities = [clean_label(a, "") for a in (draft.get("ambiguities") or []) if a]
-    ambiguities = [a for a in ambiguities if a][:MAX_AMBIGUITIES]
+    ambiguities = []
+    for a in draft.get("ambiguities") or []:
+        if isinstance(a, dict):
+            message = clean_label(a.get("message") or a.get("description"), "")
+            element = id_map.get(str(a.get("element_id")), str(a.get("element_id") or ""))
+        else:
+            message, element = clean_label(a, ""), ""
+        if message:
+            item = {"message": message}
+            if element in nodes or element in edges:
+                item["element_id"] = element
+            ambiguities.append(item)
+    ambiguities = ambiguities[:MAX_AMBIGUITIES]
 
     out_suggestions = []
     all_ids = set(nodes) | set(edges)

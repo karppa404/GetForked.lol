@@ -70,7 +70,7 @@ const session = table(
     frameCount: t.u32(),
     interactionCount: t.u32(),
     networkCount: t.u32(),
-    networkCapture: t.string(),
+    networkStatus: t.string(),
     uploadedAt: t.string(),
     uploadedByDevice: t.string(),
   }
@@ -148,6 +148,16 @@ const correction = table(
   }
 );
 
+const sessionBoard = table(
+  { name: 'session_board' },
+  {
+    sessionId: t.string().primaryKey(),
+    boardUrl: t.option(t.string()),
+    updatedBy: t.string(),
+    updatedAt: t.string(),
+  }
+);
+
 const spacetimedb = schema({
   trustedWriter,
   project,
@@ -158,6 +168,7 @@ const spacetimedb = schema({
   jobStage,
   graphVersion,
   correction,
+  sessionBoard,
 });
 export default spacetimedb;
 
@@ -237,7 +248,7 @@ export const upsert_session = spacetimedb.reducer(
     frameCount: t.u32(),
     interactionCount: t.u32(),
     networkCount: t.u32(),
-    networkCapture: t.string(),
+    networkStatus: t.string(),
     uploadedAt: t.string(),
     uploadedByDevice: t.string(),
   },
@@ -373,6 +384,20 @@ export const delete_correction = spacetimedb.reducer(
   }
 );
 
+export const set_session_board = spacetimedb.reducer(
+  { sessionId: t.string(), boardUrl: t.option(t.string()), updatedBy: t.string(), updatedAt: t.string() },
+  (ctx, args) => {
+    requireTrusted(ctx);
+    if (!ctx.db.session.sessionId.find(args.sessionId)) throw new SenderError('unknown session');
+    if (args.boardUrl !== undefined && !/^https:\/\/([a-z0-9-]+\.)*figma\.com\//.test(args.boardUrl)) {
+      throw new SenderError('board url must be an https figma.com URL');
+    }
+    const row = { ...args, boardUrl: args.boardUrl ?? undefined };
+    if (ctx.db.sessionBoard.sessionId.find(args.sessionId)) ctx.db.sessionBoard.sessionId.update(row);
+    else ctx.db.sessionBoard.insert(row);
+  }
+);
+
 /* ---------- Per-viewer views (the only thing browsers can subscribe to) ---------- */
 
 type ViewCtx = StdbViewCtx<InferSchema<typeof spacetimedb>>;
@@ -461,6 +486,19 @@ export const my_evidence_refs = spacetimedb.view(
   ctx => {
     const out = [];
     for (const sid of viewerSessionIds(ctx)) out.push(...ctx.db.evidenceRef.sessionId.filter(sid));
+    return out;
+  }
+);
+
+export const my_session_boards = spacetimedb.view(
+  { name: 'my_session_boards', public: true },
+  t.array(sessionBoard.rowType),
+  ctx => {
+    const out = [];
+    for (const sid of viewerSessionIds(ctx)) {
+      const b = ctx.db.sessionBoard.sessionId.find(sid);
+      if (b) out.push(b);
+    }
     return out;
   }
 );

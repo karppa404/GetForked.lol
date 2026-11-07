@@ -4,15 +4,28 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
-from typing import Literal, Union
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 SAFE_FILENAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 ALLOWED_FRAME_EXT = {".png", ".jpg", ".jpeg"}
-NAMED_KEY = re.compile(r"^(redacted|[a-z][a-z0-9_]*(\+[a-z0-9_]+)*)$")
-_MODIFIERS = {"cmd", "command", "ctrl", "control", "option", "alt", "shift", "fn"}
+# Mirrors macos/Sources/RetraceCore/KeyNaming.swift (isSafeKeyValue).
+NAMED_KEYS = {
+    "return", "enter", "tab", "delete", "forward_delete", "escape", "left", "right", "down", "up",
+    "home", "end", "page_up", "page_down", "help",
+    "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12",
+}
+SHORTCUT_KEYS = set("abcdefghijklmnopqrstuvwxyz0123456789") | {
+    "minus", "equal", "left_bracket", "right_bracket", "semicolon", "quote", "comma", "period",
+    "slash", "backslash", "grave", "space",
+}
+MODIFIERS = {"ctrl", "opt", "shift", "cmd"}
+REDACTED_KEY = "redacted"
+INTERACTION_KINDS = (
+    "click", "double_click", "right_click", "other_click", "scroll", "key", "text_input", "focus_lost", "focus_regained",
+)
 SHA256_HEX = re.compile(r"^[0-9a-f]{64}$")
 
 
@@ -79,61 +92,112 @@ class CorrectionPut(Strict):
         return v
 
 
+class BoardPut(Strict):
+    """FigJam board link for a session; https figma.com URLs only, or null to clear."""
+
+    board_url: str | None = Field(default=None, max_length=500)
+
+    @field_validator("board_url")
+    @classmethod
+    def _figma(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        from urllib.parse import urlsplit
+
+        parts = urlsplit(v.strip())
+        host = (parts.hostname or "").lower()
+        if parts.scheme != "https" or not parts.path.startswith("/") or not (host == "figma.com" or host.endswith(".figma.com")) or parts.username or parts.password:
+            raise ValueError("board_url must be an https figma.com URL")
+        return v.strip()
+
+
 class RealtimeViewer(Strict):
     identity: str = Field(pattern=r"^(0x)?[0-9a-fA-F]{64}$")
 
 
-# ---------- session manifest ----------
+# ---------- session manifest (aligned with macos/Sources/RetraceCore/Models.swift) ----------
 class AppInfo(Strict):
     name: str = Field(min_length=1, max_length=200)
     bundle_id: str = Field(min_length=1, max_length=200)
     pid: int = Field(ge=0, le=2**31)
 
 
-AccessibilityValue = Union[str, int, float, bool, None]
+def is_safe_key_value(value: str) -> bool:
+    if value == REDACTED_KEY:
+        return True
+    parts = value.split("+")
+    base, mods = parts[-1], parts[:-1]
+    if not base or not all(m in MODIFIERS for m in mods) or len(set(mods)) != len(mods):
+        return False
+    if base in NAMED_KEYS:
+        return True
+    if base in SHORTCUT_KEYS:
+        return "cmd" in mods or "ctrl" in mods
+    return False
+
+
+class Accessibility(Strict):
+    """Structural description of a UI element; values are never captured."""
+
+    role: str | None = Field(default=None, max_length=256)
+    subrole: str | None = Field(default=None, max_length=256)
+    title: str | None = Field(default=None, max_length=256)
+    label: str | None = Field(default=None, max_length=256)
+    identifier: str | None = Field(default=None, max_length=256)
+    window_title: str | None = Field(default=None, max_length=256)
+    secure: bool | None = None
+
+    @model_validator(mode="after")
+    def _secure(self) -> "Accessibility":
+        is_secure = self.secure is True or "AXSecureTextField" in (self.role, self.subrole)
+        if is_secure and (self.title is not None or self.label is not None or self.identifier is not None):
+            raise ValueError("secure fields must not carry title, label or identifier")
+        return self
+
+    def display(self) -> str | None:
+        for v in (self.title, self.label, self.identifier, self.role):
+            if v and v.strip():
+                return v.strip()
+        return None
 
 
 class Interaction(Strict):
     id: UUID
     timestamp_ms: int = Field(ge=0)
-    kind: str = Field(min_length=1, max_length=40, pattern=r"^[a-z][a-z_]*$")
+    kind: Literal[INTERACTION_KINDS]  # type: ignore[valid-type]
     x: float | None = None
     y: float | None = None
     key: str | None = Field(default=None, max_length=60)
     scroll_dx: float | None = None
     scroll_dy: float | None = None
-    accessibility: dict[str, AccessibilityValue] | str | None = None
+    accessibility: Accessibility | None = None
     before_frame_id: UUID | None = None
     after_frame_id: UUID | None = None
+    delayed_frame_id: UUID | None = None
 
     @field_validator("key")
     @classmethod
     def _named_key(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        lowered = v.strip().lower()
-        if not NAMED_KEY.match(lowered):
-            raise ValueError("key must be a named control (e.g. 'return', 'cmd+s') or 'redacted'")
-        parts = lowered.split("+")
-        # A lone printable character is typed text, not a named control.
-        if len(parts) == 1 and len(parts[0]) == 1:
-            raise ValueError("bare character keys look like typed text; send 'redacted'")
-        if len(parts) > 1 and not all(p in _MODIFIERS for p in parts[:-1]):
-            raise ValueError("key chords must be modifiers followed by one key")
-        return lowered
-
-    @field_validator("accessibility")
-    @classmethod
-    def _bounded(cls, v):
-        if isinstance(v, dict):
-            if len(v) > 32:
-                raise ValueError("accessibility has too many fields")
-            for k, val in v.items():
-                if len(k) > 64 or (isinstance(val, str) and len(val) > 500):
-                    raise ValueError("accessibility field too long")
-        elif isinstance(v, str) and len(v) > 1000:
-            raise ValueError("accessibility too long")
+        if v is not None and not is_safe_key_value(v):
+            raise ValueError("key must be a safe named key or shortcut (e.g. 'return', 'cmd+s') or 'redacted'")
         return v
+
+    @model_validator(mode="after")
+    def _text_input(self) -> "Interaction":
+        if self.kind == "text_input" and self.key != REDACTED_KEY:
+            raise ValueError("text_input interactions must have key 'redacted'")
+        return self
+
+    def frame_refs(self) -> list[tuple[str, UUID]]:
+        return [
+            (name, ref)
+            for name, ref in (
+                ("before_frame_id", self.before_frame_id),
+                ("after_frame_id", self.after_frame_id),
+                ("delayed_frame_id", self.delayed_frame_id),
+            )
+            if ref is not None
+        ]
 
 
 class Frame(Strict):
@@ -157,7 +221,6 @@ class Frame(Strict):
     @field_validator("sha256")
     @classmethod
     def _hex(cls, v: str) -> str:
-        v = v.lower()
         if not SHA256_HEX.match(v):
             raise ValueError("sha256 must be 64 lowercase hex characters")
         return v
@@ -191,14 +254,9 @@ class Network(Strict):
 
 class Redaction(Strict):
     reviewed: Literal[True]
-    notes: str | None = Field(default=None, max_length=1000)
-
-
-class NetworkCapture(Strict):
-    """Optional additive field: whether network capture actually ran."""
-
-    status: Literal["captured", "not_captured"]
-    tool: str | None = Field(default=None, max_length=80)
+    omitted_frames: int | None = Field(default=None, ge=0)
+    omitted_interactions: int | None = Field(default=None, ge=0)
+    window_titles_removed: bool | None = None
 
 
 class Manifest(Strict):
@@ -212,8 +270,8 @@ class Manifest(Strict):
     interactions: list[Interaction]
     frames: list[Frame]
     network: list[Network]
+    network_status: Literal["observed", "none_observed", "not_captured"]
     redaction: Redaction
-    network_capture: NetworkCapture | None = None
 
     @field_validator("started_at")
     @classmethod
@@ -237,15 +295,16 @@ class Manifest(Strict):
             raise ValueError("duplicate frame filenames")
         frame_ids = {f.id for f in self.frames}
         for i in self.interactions:
-            for ref in (i.before_frame_id, i.after_frame_id):
-                if ref is not None and ref not in frame_ids:
-                    raise ValueError(f"interaction {i.id} references unknown frame {ref}")
-        if self.network_capture and self.network_capture.status == "not_captured" and self.network:
-            raise ValueError("network entries present but network_capture.status is not_captured")
+            for name, ref in i.frame_refs():
+                if ref not in frame_ids:
+                    raise ValueError(f"interaction {i.id} {name} references unknown frame {ref}")
+        if self.network_status in ("not_captured", "none_observed") and self.network:
+            raise ValueError(f"network must be empty when network_status is {self.network_status}")
+        if self.network_status == "observed" and not self.network:
+            raise ValueError("network_status observed requires network entries")
         return self
 
     @property
     def capture_status(self) -> str:
-        if self.network_capture is not None:
-            return self.network_capture.status
-        return "captured" if self.network else "not_captured"
+        """captured when a network capture actually ran (observed or none_observed)."""
+        return "not_captured" if self.network_status == "not_captured" else "captured"

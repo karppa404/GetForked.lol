@@ -138,6 +138,7 @@ class Settings:
     max_file_bytes: int = 10 * 1024 * 1024
     max_upload_bytes: int = 250 * 1024 * 1024
 
+    analyze_dedupe_window_s: float = 120.0
     inline_jobs: bool = False  # tests run analysis synchronously
     llm: LLMSettings = field(default_factory=LLMSettings)
 

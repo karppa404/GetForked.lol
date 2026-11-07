@@ -70,6 +70,18 @@ class ArtifactStore:
         with os.fdopen(fd, "w") as f:
             json.dump(manifest_json, f)
 
+    def write_upload_marker(self, staging: Path, marker: dict) -> None:
+        fd = os.open(staging / "upload.json", os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, "w") as f:
+            json.dump(marker, f)
+
+    def read_upload_marker(self, project_id: str, session_id: str) -> dict | None:
+        path = self._dir(project_id, session_id) / "upload.json"
+        try:
+            return json.loads(path.read_text())
+        except (OSError, ValueError):
+            return None
+
     def load_manifest(self, project_id: str, session_id: str) -> Manifest:
         path = self._dir(project_id, session_id) / "manifest.json"
         return Manifest.model_validate_json(path.read_text())

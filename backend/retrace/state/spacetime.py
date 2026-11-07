@@ -38,6 +38,7 @@ VIEWS = [
     "my_job_stages",
     "my_graphs",
     "my_corrections",
+    "my_session_boards",
 ]
 
 
@@ -243,3 +244,14 @@ class SpacetimeState:
     def list_corrections(self, session_id: str) -> list[CorrectionRec]:
         rows = self._rows(CorrectionRec, f"SELECT * FROM correction WHERE session_id = {sql_str(session_id)}")
         return sorted(rows, key=lambda c: c.updated_at)
+
+    # ---- board links ----
+    def set_board_url(self, session_id: str, board_url: str | None, user_id: str, updated_at: str) -> None:
+        self._call(
+            "set_session_board",
+            {"session_id": session_id, "board_url": _opt(board_url), "updated_by": user_id, "updated_at": updated_at},
+        )
+
+    def get_board_url(self, session_id: str) -> str | None:
+        rows = self._sql(f"SELECT * FROM session_board WHERE session_id = {sql_str(session_id)}")
+        return rows[0].get("board_url") if rows else None

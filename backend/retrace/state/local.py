@@ -19,7 +19,7 @@ CREATE INDEX IF NOT EXISTS project_owner ON project(owner_user_id);
 CREATE TABLE IF NOT EXISTS session (
   session_id TEXT PRIMARY KEY, project_id TEXT, status TEXT, app_name TEXT, bundle_id TEXT, task TEXT,
   started_at TEXT, duration_ms INTEGER, frame_count INTEGER, interaction_count INTEGER, network_count INTEGER,
-  network_capture TEXT, uploaded_at TEXT, uploaded_by_device TEXT);
+  network_status TEXT, uploaded_at TEXT, uploaded_by_device TEXT);
 CREATE INDEX IF NOT EXISTS session_project ON session(project_id);
 CREATE TABLE IF NOT EXISTS evidence_ref (evidence_id TEXT PRIMARY KEY, session_id TEXT, kind TEXT,
   timestamp_ms INTEGER, artifact_key TEXT, summary TEXT);
@@ -36,6 +36,7 @@ CREATE INDEX IF NOT EXISTS graph_session ON graph_version(session_id);
 CREATE TABLE IF NOT EXISTS correction (correction_id TEXT PRIMARY KEY, session_id TEXT, element_id TEXT, label TEXT,
   author_user_id TEXT, updated_at TEXT);
 CREATE INDEX IF NOT EXISTS correction_session ON correction(session_id);
+CREATE TABLE IF NOT EXISTS session_board (session_id TEXT PRIMARY KEY, board_url TEXT, updated_by TEXT, updated_at TEXT);
 """
 
 
@@ -152,3 +153,12 @@ class LocalDevState:
 
     def list_corrections(self, session_id: str) -> list[CorrectionRec]:
         return self._rows(CorrectionRec, "SELECT * FROM correction WHERE session_id=? ORDER BY updated_at", (session_id,))
+
+    # board links
+    def set_board_url(self, session_id: str, board_url: str | None, user_id: str, updated_at: str) -> None:
+        with self.db.tx() as c:
+            c.execute("INSERT OR REPLACE INTO session_board VALUES (?,?,?,?)", (session_id, board_url, user_id, updated_at))
+
+    def get_board_url(self, session_id: str) -> str | None:
+        row = self.db.one("SELECT board_url FROM session_board WHERE session_id=?", (session_id,))
+        return row["board_url"] if row else None

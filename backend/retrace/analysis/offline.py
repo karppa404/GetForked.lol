@@ -26,7 +26,7 @@ def _ax_label(accessibility) -> str | None:
 
 def _window(accessibility) -> str | None:
     if isinstance(accessibility, dict):
-        for key in ("window", "window_title"):
+        for key in ("window_title", "window"):
             v = accessibility.get(key)
             if isinstance(v, str) and v.strip():
                 return v.strip()
@@ -40,7 +40,7 @@ def workflow(payload: dict) -> dict:
     window_for_frame: dict[str, str] = {}
     for i in payload.get("interactions", []):
         w = _window(i.get("accessibility"))
-        for ref in (i.get("before_frame_id"), i.get("after_frame_id")):
+        for ref in (i.get("before_frame_id"), i.get("after_frame_id"), i.get("delayed_frame_id")):
             if ref and w and ref not in window_for_frame:
                 window_for_frame[ref] = w
 
@@ -57,21 +57,43 @@ def workflow(payload: dict) -> dict:
         return screen_key[frame_id]
 
     actions = []
+    ambiguities = []
+    verbs = {
+        "click": "Click",
+        "double_click": "Double-click",
+        "right_click": "Right-click",
+        "other_click": "Click",
+        "scroll": "Scroll",
+        "key": "Press",
+        "text_input": "Type into",
+    }
     for idx, i in enumerate(payload.get("interactions", []), start=1):
-        target = _ax_label(i.get("accessibility")) or i.get("key") or ""
-        verb = i.get("kind", "interaction").replace("_", " ")
-        label = f"{verb.capitalize()} {target}".strip()
-        before, after = screen_for(i.get("before_frame_id")), screen_for(i.get("after_frame_id"))
-        evidence = [i["id"]] + [f for f in (i.get("before_frame_id"), i.get("after_frame_id")) if f in frames]
+        kind = i.get("kind", "")
+        if kind in ("focus_lost", "focus_regained"):
+            if kind == "focus_lost":
+                ambiguities.append(f"Target app lost focus at {i['timestamp_ms'] / 1000:.1f}s; capture paused")
+            continue
+        target = _ax_label(i.get("accessibility")) or ""
+        if kind == "key":
+            label = f"Press {i.get('key') or 'key'}" + (f" in {target}" if target else "")
+        else:
+            label = f"{verbs.get(kind, kind.replace('_', ' ').capitalize())} {target}".strip()
+        after_ref = i.get("after_frame_id") or i.get("delayed_frame_id")
+        before, after = screen_for(i.get("before_frame_id")), screen_for(after_ref)
+        refs = (i.get("before_frame_id"), i.get("after_frame_id"), i.get("delayed_frame_id"))
+        evidence = [i["id"]] + [f for f in refs if f in frames]
         actions.append({"key": f"a{idx}", "label": label, "from": before, "to": after, "evidence_ids": evidence})
     if not screens and frames:
         first = next(iter(frames))
         screen_for(first)
-    return {"screens": screens, "actions": actions, "ambiguities": []}
+    return {"screens": screens, "actions": actions, "ambiguities": ambiguities}
 
 
 def network(payload: dict) -> dict:
-    interactions = sorted(payload.get("interactions", []), key=lambda i: i["timestamp_ms"])
+    interactions = sorted(
+        (i for i in payload.get("interactions", []) if i.get("kind") not in ("focus_lost", "focus_regained")),
+        key=lambda i: i["timestamp_ms"],
+    )
     api_calls, associations = [], []
     for idx, n in enumerate(payload.get("network", []), start=1):
         path = urlsplit(n["url"]).path or "/"

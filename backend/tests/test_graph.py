@@ -23,7 +23,7 @@ def draft(**extra):
             {"source": "a1", "target": "s2", "evidence_ids": [I1], "association": "observed"},
             {"source": "a1", "target": "n1", "evidence_ids": [I1, N1], "association": "observed"},
         ],
-        "ambiguities": ["Two save buttons look alike"],
+        "ambiguities": ["Two save buttons look alike", {"message": "Which save?", "element_id": "a1"}],
     }
     d.update(extra)
     return d

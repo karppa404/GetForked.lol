@@ -44,7 +44,7 @@ class Api:
         assert r.status_code == 201, r.text
         return r.json()["id"]
 
-    def pair(self, headers, project_id, device_name="Alice's Mac") -> str:
+    def pair(self, headers, project_id, device_name="Alice's Mac") -> dict:
         p = self.c.post("/v1/pairings", json={"project_id": project_id}, headers=headers).json()
         claim = self.c.post("/v1/pairings/claim", json={"code": p["code"], "device_name": device_name}).json()
         r = self.c.post(f"/v1/pairings/{p['pairing_id']}/approve", json={"claim_id": claim["claim_id"]}, headers=headers)
@@ -60,7 +60,7 @@ class Api:
         )
 
 
-def build_manifest(project_id: str, *, network=True, capture: str | None = None, n_frames=3) -> tuple[dict, dict[str, bytes]]:
+def build_manifest(project_id: str, *, network=True, status: str | None = None, n_frames=3) -> tuple[dict, dict[str, bytes]]:
     frames, files = [], {}
     for k in range(n_frames):
         data = png_bytes(k)
@@ -76,7 +76,7 @@ def build_manifest(project_id: str, *, network=True, capture: str | None = None,
             "kind": "click",
             "x": 10.0,
             "y": 20.0,
-            "accessibility": {"role": "AXButton", "title": f"Button {k}", "window": f"Window {k}"},
+            "accessibility": {"role": "AXButton", "title": f"Button {k}", "window_title": f"Window {k}"},
             "before_frame_id": frames[k]["id"],
             "after_frame_id": frames[k + 1]["id"],
         }
@@ -106,10 +106,9 @@ def build_manifest(project_id: str, *, network=True, capture: str | None = None,
         "interactions": interactions,
         "frames": frames,
         "network": net,
+        "network_status": status or ("observed" if network else "not_captured"),
         "redaction": {"reviewed": True},
     }
-    if capture:
-        manifest["network_capture"] = {"status": capture}
     return manifest, files
 
 

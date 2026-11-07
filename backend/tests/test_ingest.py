@@ -4,6 +4,7 @@ import json
 import os
 import stat
 import uuid
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -51,11 +52,51 @@ def test_valid_upload_is_private_and_redacted(paired, settings):
     assert img.headers["cache-control"] == "private, no-store"
 
 
-def test_duplicate_session_rejected(paired):
-    api, _, pid, device = paired
+def test_reupload_is_idempotent_but_conflicting_reupload_rejected(paired, settings):
+    api, alice, pid, device = paired
     manifest, files = build_manifest(pid)
     assert api.upload(device, manifest, files).status_code == 201
-    assert api.upload(device, manifest, files).status_code == 409
+    again = api.upload(device, manifest, files)
+    assert again.status_code == 200 and again.json()["duplicate"] is True and again.json()["id"] == manifest["id"]
+    assert len(api.c.get(f"/v1/projects/{pid}/sessions", headers=alice).json()["sessions"]) == 1
+    changed = copy.deepcopy(manifest)
+    changed["task"] = "Something else"
+    assert api.upload(device, changed, files).status_code == 409
+    # same session id from another project's device is rejected
+    other = api.project(alice, "Other")
+    d2 = api.pair(alice, other)
+    moved = copy.deepcopy(manifest)
+    moved["project_id"] = other
+    assert api.upload(d2, moved, files).status_code == 409
+
+
+def test_reupload_repairs_missing_shared_state(paired, app):
+    api, alice, pid, device = paired
+    manifest, files = build_manifest(pid)
+    assert api.upload(device, manifest, files).status_code == 201
+    state = app.state.services.state
+    with state.db.tx() as c:  # simulate a crash between storage commit and state write
+        c.execute("DELETE FROM session WHERE session_id=?", (manifest["id"],))
+    r = api.upload(device, manifest, files)
+    assert r.status_code == 200 and r.json()["duplicate"] is True
+    assert api.c.get(f"/v1/sessions/{manifest['id']}", headers=alice).status_code == 200
+
+
+def test_macos_synthetic_fixture_accepted(paired):
+    """The recorder's committed fixture (macos/Tests/.../synthetic-session) must ingest as-is
+    once the recorder binds project_id and marks review complete."""
+    api, alice, pid, device = paired
+    fixture = Path(__file__).resolve().parents[2] / "macos/Tests/RetraceCoreTests/Fixtures/synthetic-session"
+    if not fixture.exists():
+        pytest.skip("macOS fixture not present in this checkout")
+    manifest = json.loads((fixture / "manifest.json").read_text())
+    manifest["project_id"] = pid
+    manifest["redaction"] = {"reviewed": True, "omitted_frames": 0, "omitted_interactions": 0, "window_titles_removed": False}
+    files = {f["filename"]: (fixture / "frames" / f["filename"]).read_bytes() for f in manifest["frames"]}
+    r = api.upload(device, manifest, files)
+    assert r.status_code == 201, r.text
+    s = api.c.get(f"/v1/sessions/{manifest['id']}", headers=alice).json()
+    assert s["network_status"] == "not_captured" and s["counts"]["interactions"] == 5
 
 
 @pytest.mark.parametrize(
@@ -74,7 +115,18 @@ def test_duplicate_session_rejected(paired):
         (lambda m: m["interactions"][0].update(id=m["frames"][0]["id"]), 422),
         (lambda m: m["interactions"][0].update(timestamp_ms=10**9), 422),
         (lambda m: m["network"][0].update(url="file:///etc/passwd"), 422),
-        (lambda m: m.update(network_capture={"status": "not_captured"}), 422),
+        (lambda m: m.update(network_status="not_captured"), 422),
+        (lambda m: m.update(network_status="none_observed"), 422),
+        (lambda m: m.pop("network_status"), 422),
+        (lambda m: m.update(network=[], network_status="observed"), 422),
+        (lambda m: m["interactions"][0].update(delayed_frame_id=str(uuid.uuid4())), 422),
+        (lambda m: m["interactions"][0].update(kind="drag"), 422),
+        (lambda m: m["interactions"][0].update(kind="text_input", key="cmd+s"), 422),
+        (lambda m: m["interactions"][0].update(key="opt+a"), 422),
+        (lambda m: m["interactions"][0].update(key="cmd+cmd+s"), 422),
+        (lambda m: m["interactions"][0].update(accessibility={"role": "AXTextField", "secure": True, "title": "Password"}), 422),
+        (lambda m: m["interactions"][0].update(accessibility={"role": "AXButton", "value": "secret"}), 422),
+        (lambda m: m["redaction"].update(omitted_frames=-1), 422),
     ],
 )
 def test_manifest_validation(paired, mutate, code):
