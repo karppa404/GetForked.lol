@@ -1,11 +1,17 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { layeredLayout, networkView, workflowView, type GraphView } from "@/lib/dashboard/graph";
-import { GraphCanvas } from "./graph-canvas";
 import { LabelEditor } from "./label-editor";
 import { elementEvidence, typeLabel, type SessionModel, type Selection } from "./session-model";
-import { EmptyState, Spinner } from "./ui";
+import { EmptyState, LoadingBlock, Spinner } from "./ui";
+
+// React Flow (and its stylesheet) loads only when a recording with a graph shows the canvas.
+const GraphCanvas = dynamic(() => import("./graph-canvas").then((m) => m.GraphCanvas), {
+  ssr: false,
+  loading: () => <LoadingBlock label="Loading canvas" />,
+});
 
 type Tab = "workflow" | "network";
 type Mode = "canvas" | "outline";
