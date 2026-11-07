@@ -68,7 +68,7 @@ export function GraphPanel({ model, selection, onSelect, onRename, analysisRunni
     body = (
       <EmptyState title="Network not captured">
         <p>This recording was made without network capture, so Retrace can’t show which APIs the workflow depends on. The workflow is still grounded in screenshots and interactions.</p>
-        <p className="rd-fine">To map APIs, record again with network capture enabled in the recorder.</p>
+        <p className="rd-fine">To map APIs, import evidence from the separate network capture helper.</p>
       </EmptyState>
     );
   } else if (tab === "network" && session.network_status === "none_observed") {

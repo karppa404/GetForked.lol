@@ -47,7 +47,7 @@ const RetraceNode = memo(function RetraceNode({ id, data, selected }: NodeProps<
       }}
       title="Double-click to rename"
     >
-      <Handle type="target" position={Position.Left} className="rd-handle" isConnectable={false} />
+      <Handle type="target" position={Position.Top} className="rd-handle" isConnectable={false} />
       <div className="rd-gnode-type">
         {typeLabel(data.type)}
         {data.ambiguous && <span className="rd-gnode-flag" title="Has an open question">?</span>}
@@ -61,7 +61,7 @@ const RetraceNode = memo(function RetraceNode({ id, data, selected }: NodeProps<
         <span>{data.evidenceCount} {data.evidenceCount === 1 ? "source" : "sources"}</span>
         {data.edited && <span className="rd-edited-tag">Edited</span>}
       </div>
-      <Handle type="source" position={Position.Right} className="rd-handle" isConnectable={false} />
+      <Handle type="source" position={Position.Bottom} className="rd-handle" isConnectable={false} />
     </div>
   );
 });
@@ -92,7 +92,7 @@ function CanvasInner({ view, selection, highlightedIds, editedIds, ambiguousIds,
   const structureKey = view.nodes.map((n) => n.id).join("|") + "#" + view.edges.map((e) => e.id).join("|");
   // Layout depends only on structure, so relabeling never moves nodes.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const layout = useMemo(() => layeredLayout(view.nodes, view.edges), [structureKey]);
+  const layout = useMemo(() => layeredLayout(view.nodes, view.edges, { direction: "TB" }), [structureKey]);
   const dragged = useRef<Record<string, { x: number; y: number }>>({});
   const selectedId = selection?.kind === "element" ? selection.id : null;
 
@@ -130,7 +130,7 @@ function CanvasInner({ view, selection, highlightedIds, editedIds, ambiguousIds,
   }, [derived]);
 
   useEffect(() => {
-    const t = setTimeout(() => fitView({ padding: 0.18, duration: 250, maxZoom: 1.1 }), 30);
+    const t = setTimeout(() => fitView({ padding: 0.18, duration: 0, maxZoom: 1.1 }), 30);
     return () => clearTimeout(t);
   }, [structureKey, fitView]);
 
@@ -165,7 +165,7 @@ function CanvasInner({ view, selection, highlightedIds, editedIds, ambiguousIds,
   const resetLayout = () => {
     dragged.current = {};
     setNodes(derived.map((d) => ({ ...d, position: layout[d.id] ?? d.position })));
-    setTimeout(() => fitView({ padding: 0.18, duration: 250, maxZoom: 1.1 }), 30);
+    setTimeout(() => fitView({ padding: 0.18, duration: 0, maxZoom: 1.1 }), 30);
   };
 
   return (
