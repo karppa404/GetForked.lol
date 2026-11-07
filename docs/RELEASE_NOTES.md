@@ -1,24 +1,37 @@
-Retrace v0.1.0-alpha.2 is a developer prerelease for Apple Silicon Macs running macOS 14 or later.
+Retrace v0.1.0-alpha.3 is a localhost developer prerelease for Apple Silicon Macs running macOS 14 or later.
 
-## Downloads
+## What changed
 
-- **Retrace-macOS-arm64.zip**: native menu bar recorder. Unzip and drag Retrace.app to Applications. It uses an ad hoc signature and is not notarized; macOS may require approval in System Settings → Privacy & Security before the first launch.
-- **Retrace-FigJam-plugin.zip**: developer importer for editable FigJam shapes and connectors. Register a development plugin in Figma and replace the manifest's placeholder ID before loading it. Runtime import in Figma has not yet been verified.
-- **Source code**: Next.js workspace, FastAPI worker, SpacetimeDB module, macOS recorder and mitmproxy helper.
+- Observe activity in a selected application without typing a task or reason.
+- Connect the recorder to Local workspace with one click. No room code or sign-in wall.
+- Local-only workspace and API; old saved hosted URLs migrate to localhost.
+- Redesigned landing page and three-panel evidence workspace, with a captioned 22-second FFmpeg demo.
+- Readable vertical workflow graphs, visible edges and graph code loaded on demand.
+- Initial and bounded periodic foreground screenshots also retain output evidence without input events. Capture errors are visible.
 
-## Using the connected app
+## Use
 
-Start the local API, SpacetimeDB and dashboard using [the local demo guide](https://github.com/karppa404/HackUTD-2026/blob/main/docs/LOCAL_DEMO.md). Create a project, generate a room code, enter it in the recorder, then approve the Mac in the dashboard. Grant Accessibility and Screen Recording permissions through the recorder. Demonstrate a task yourself, stop, review and omit sensitive evidence, and explicitly choose Upload & Analyze.
+Start SpacetimeDB, the API and the site using [the local guide](https://github.com/karppa404/HackUTD-2026/blob/main/docs/LOCAL_DEMO.md). Open http://localhost:3000/dashboard. In Retrace choose Connection → Connect to Local workspace, select an application, and start observing. Stop, review and omit sensitive evidence, then explicitly choose Upload & Analyze.
 
-The public [website and preview dashboard](https://retrace-hackutd-2026.vercel.app/dashboard) use clearly labeled sample data until production auth/backend configuration is supplied. This release does not bundle a hosted analysis service.
+Unzip Retrace-macOS-arm64.zip and move Retrace.app into Applications. The app is ad hoc signed and not notarized. macOS may require first-launch approval and renewed Accessibility/Screen Recording grants after updates.
+
+Retrace-FigJam-plugin.zip imports validated graph JSON as editable shapes and connectors. Register it as a development plugin and replace the placeholder manifest ID. Saving a FigJam board URL in the session makes it easy to return to the board later.
 
 ## Verified
 
-Native compilation, 37 Swift tests and app signature verification; 37 web tests plus a live two-viewer SpacetimeDB synchronization check; backend tests against real local SpacetimeDB; graph compatibility and four importer tests. Synthetic native evidence passes pairing, upload, four-stage deterministic development analysis, human corrections across reruns, and graph export.
+- 37 Swift tests, app compilation and signature verification.
+- 95 backend tests pass; two disposable-SpacetimeDB tests skip without their fixture.
+- 42 web tests pass, one optional live-subscription test skipped; TypeScript and production build pass.
+- Four FigJam validator tests and importer build pass.
+- Actual one-click local connection, Keychain save, permission handling, foreground pause, app-scoped Mail screenshot and local review ran on a Mac.
+- A bounded live Brev/Nemotron synthetic run completed in five calls (17,197 reported tokens): five nodes and four edges. Publisher output was rejected; the validated reconciliation graph was retained with an explicit ambiguity.
 
-## Remaining integration checks
+## Limits
 
-- Real screen capture, Accessibility and Keychain behavior need permission checks on your Mac. Build/unit tests do not prove real recording works.
-- The supplied Brev inference URL currently returns HTTP 401 with the supplied credential. Live Nemotron analysis is pending working authentication and model availability validation. Offline development analysis is explicitly labeled, and no live inference credits have been spent.
-- Google OAuth and the hosted API/SpacetimeDB/private object storage are not configured. Local capture remains on the Mac until explicit upload; the current local API stores uploaded artifacts in private server-side files.
-- Network capture is a separate optional mitmproxy helper. The recorder alone reports network as not captured.
+The supplied endpoint serves NVIDIA-Nemotron-Nano-9B-v2, a text-only model. It does not interpret screenshot pixels. The Mail capture was kept local; the video's analysis segment uses a separate, clearly labeled synthetic fixture.
+
+Computer Use automation can bypass passive macOS input monitors. Physical mouse/keyboard capture still needs a manual check; the automated Mail walkthrough established screen capture and foreground filtering, not complete physical-input coverage.
+
+The recorder is capped at 300 frames per session and continues interactions after that limit. It observes one selected app while frontmost, rather than the entire Mac. Network evidence requires the separate mitmproxy helper; the native recorder reports Network not captured. The helper runtime and Figma runtime import remain unverified.
+
+Configured remote inference receives sanitized evidence after explicit upload/analysis; localhost is not an offline inference promise. No hosted API, site deployment or Google account configuration is required for this release. Token/call limits are enforced; dollar enforcement requires configured provider prices and cannot stop an hourly GPU instance.
