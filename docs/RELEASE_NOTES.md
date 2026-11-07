@@ -1,4 +1,4 @@
-Retrace v0.1.0-alpha.1 is a developer prerelease for Apple Silicon Macs running macOS 14 or later.
+Retrace v0.1.0-alpha.2 is a developer prerelease for Apple Silicon Macs running macOS 14 or later.
 
 ## Downloads
 
