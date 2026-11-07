@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// The generated mark is a template in the menu bar, so macOS supplies the right contrast.
@@ -13,8 +14,18 @@ struct RetraceMark: View {
         return .module
     }()
 
+    private static let image: NSImage = {
+        if let url = resources.url(forResource: "RetraceMenuBarTemplate@2x", withExtension: "png"),
+           let image = NSImage(contentsOf: url) {
+            image.size = NSSize(width: 18, height: 18)
+            image.isTemplate = false
+            return image
+        }
+        return NSImage(systemSymbolName: "arrow.uturn.backward", accessibilityDescription: nil)!
+    }()
+
     var body: some View {
-        Image("RetraceMenuBarTemplate", bundle: Self.resources)
+        Image(nsImage: Self.image)
             .renderingMode(template ? .template : .original)
             .resizable()
             .interpolation(.high)
