@@ -25,6 +25,12 @@ public enum CapturePolicy {
         return ownerPID == targetPID ? .accept : .dropOutsideTarget
     }
 
+    /// Retain occasional output evidence even when no monitored input arrives.
+    public static func shouldRetainAmbientFrame(lastUptime: TimeInterval?, currentUptime: TimeInterval) -> Bool {
+        guard let lastUptime else { return true }
+        return currentUptime - lastUptime >= 15
+    }
+
     /// Max age of the in-memory frame that may serve as an action's "before" evidence.
     public static let maxBeforeFrameAge: TimeInterval = 3.0
 

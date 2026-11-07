@@ -51,6 +51,7 @@ final class Recorder: ObservableObject {
     private var indexById: [String: Int] = [:]
     private var frames: [String: Frame] = [:]
     private var reservedFrames = 0
+    private var lastAmbientFrameUptime: TimeInterval?
 
     private var monitors: [Any] = []
     private var observers: [NSObjectProtocol] = []
@@ -98,6 +99,7 @@ final class Recorder: ObservableObject {
         self.indexById = [:]
         self.frames = [:]
         self.reservedFrames = 0
+        self.lastAmbientFrameUptime = nil
         self.cache = nil
         self.scheduled = [:]
         self.outstanding = [:]
@@ -434,12 +436,25 @@ final class Recorder: ObservableObject {
         guard capturingAllowed, state == .recording, let capturer else { return }
         let captureSessionId = sessionId
         track { [weak self] in
-            guard let img = try? await capturer.capture() else { return }
+            let img: CapturedImage
+            do { img = try await capturer.capture() }
+            catch {
+                if let self, self.sessionId == captureSessionId, self.isActive {
+                    self.notice = "Could not capture app frames: \(error.localizedDescription)"
+                }
+                return
+            }
             guard let self, self.capturingAllowed,
                   CapturePolicy.canRetainFrame(sessionId: captureSessionId, activeSessionId: self.sessionId,
                                                sessionIsActive: self.isActive, cancelled: Task.isCancelled) else { return }
             if let c = self.cache, c.image.uptime > img.uptime { return }
             self.cache = (img, nil)
+            if CapturePolicy.shouldRetainAmbientFrame(lastUptime: self.lastAmbientFrameUptime, currentUptime: img.uptime),
+               let id = self.reserveFrame() {
+                self.lastAmbientFrameUptime = img.uptime
+                self.cache = (img, id)
+                _ = await self.persist(img, id: id)
+            }
         }
     }
 
@@ -508,6 +523,8 @@ final class Recorder: ObservableObject {
             try? FileManager.default.removeItem(at: file)
             return nil
         }
+        if notice?.hasPrefix("Could not capture app frames:") == true { notice = nil }
+        lastAmbientFrameUptime = max(lastAmbientFrameUptime ?? img.uptime, img.uptime)
         frames[id] = frame
         frameCount = frames.count
         return id

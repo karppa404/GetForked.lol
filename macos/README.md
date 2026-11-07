@@ -134,3 +134,5 @@ local connection request/decoding, upload multipart and retry bounds), plus `ret
 The real capture path (event monitor, Accessibility, ScreenCaptureKit) and real Keychain
 access need the runtime permissions above and a manual run. They are not covered by
 automated tests.
+
+Output evidence also retains an initial foreground frame and a frame every 15 seconds without an input event, within the shared 300-frame cap. Capture errors appear in the recorder instead of failing silently. Accessibility-triggered automation may bypass macOS passive input monitors; validate physical clicks separately.
