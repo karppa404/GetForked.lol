@@ -114,6 +114,10 @@ export function FrameImage({ sessionId, frame }: { sessionId: string; frame: Fra
     setState({ loading: true });
     workspace.frameImage(sessionId, frame.image_url, controller.signal).then(
       (url) => {
+        if (controller.signal.aborted) {
+          if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
+          return;
+        }
         if (url?.startsWith("blob:")) objectUrl = url;
         if (!controller.signal.aborted) setState({ url: url ?? undefined, loading: false });
       },

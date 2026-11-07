@@ -35,8 +35,8 @@ export interface RequestOptions {
   signal?: AbortSignal;
   /** Send without the bearer token (sign-in endpoints). */
   anonymous?: boolean;
-  /** Return the raw Response for non-JSON bodies. */
-  raw?: boolean;
+  /** Read an image body before releasing the request timeout. */
+  responseType?: "blob";
 }
 
 function messageFromBody(body: unknown, status: number): string {
@@ -77,9 +77,8 @@ export function createApiClient(options: ApiClientOptions) {
     const token = opts.anonymous ? null : options.getToken?.();
     if (token) headers.Authorization = `Bearer ${token}`;
 
-    let response: Response;
     try {
-      response = await doFetch(`${baseUrl}${path}`, {
+      const response = await doFetch(`${baseUrl}${path}`, {
         method,
         headers,
         body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
@@ -87,7 +86,23 @@ export function createApiClient(options: ApiClientOptions) {
         credentials: "omit",
         cache: "no-store",
       });
+      if (opts.responseType === "blob" && response.ok) return await response.blob() as T;
+      const text = await response.text();
+      let body: unknown = null;
+      if (text) {
+        try {
+          body = JSON.parse(text);
+        } catch {
+          if (response.ok) throw new ApiError("parse", "The API returned a response that isn't JSON", response.status);
+        }
+      }
+      if (!response.ok) {
+        if (response.status === 401 && !opts.anonymous) options.onUnauthorized?.();
+        throw new ApiError("http", messageFromBody(body, response.status), response.status);
+      }
+      return body as T;
     } catch (error) {
+      if (error instanceof ApiError) throw error;
       if (timedOut) throw new ApiError("timeout", `The API did not respond within ${Math.round(timeoutMs / 1000)}s`);
       if (opts.signal?.aborted) throw new ApiError("aborted", "Request cancelled");
       throw new ApiError("network", `Can't reach the Retrace API at ${baseUrl}`);
@@ -95,23 +110,6 @@ export function createApiClient(options: ApiClientOptions) {
       clearTimeout(timer);
       opts.signal?.removeEventListener("abort", onCallerAbort);
     }
-
-    if (opts.raw && response.ok) return response as unknown as T;
-
-    const text = await response.text().catch(() => "");
-    let body: unknown = null;
-    if (text) {
-      try {
-        body = JSON.parse(text);
-      } catch {
-        if (response.ok) throw new ApiError("parse", "The API returned a response that isn't JSON", response.status);
-      }
-    }
-    if (!response.ok) {
-      if (response.status === 401 && !opts.anonymous) options.onUnauthorized?.();
-      throw new ApiError("http", messageFromBody(body, response.status), response.status);
-    }
-    return body as T;
   }
 
   return {

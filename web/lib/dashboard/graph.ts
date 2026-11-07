@@ -113,8 +113,8 @@ export function validateGraph(raw: unknown, evidenceIds?: ReadonlySet<string>): 
     if (!nodeIds.has(e.target as string)) errors.push(`Edge ${id}: target ${String(e.target)} is not a node.`);
     if (e.association !== "observed" && e.association !== "candidate") errors.push(`Edge ${id}: association must be observed or candidate.`);
     checkEvidence(`Edge ${id}`, e.evidence_ids);
-    if (e.association === "observed" && Array.isArray(e.evidence_ids) && e.evidence_ids.length === 0) {
-      warnings.push(`Edge ${id} is marked observed but cites no evidence.`);
+    if (Array.isArray(e.evidence_ids) && e.evidence_ids.length === 0) {
+      errors.push(`Edge ${id} cites no supporting evidence.`);
     }
   }
   return { ok: errors.length === 0, errors, warnings };

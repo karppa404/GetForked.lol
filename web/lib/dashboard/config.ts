@@ -51,6 +51,8 @@ export function resolveEnvironment(
 export const POLL = {
   jobIntervalMs: 2500,
   jobMaxAttempts: 144, // ~6 minutes of visible-page polling per analysis view
+  reviewIntervalMs: 5000,
+  reviewMaxAttempts: 144, // ~12 minutes per completed-session view; user can explicitly resume
   pairingIntervalMs: 3000,
   requestTimeoutMs: 15000,
 } as const;

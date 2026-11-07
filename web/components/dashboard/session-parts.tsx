@@ -45,10 +45,10 @@ export function JobProgress({ job, poll, onRetryPoll }: { job: Job; poll: { stat
   );
 }
 
-function validBoardUrl(v: string): string | null {
+export function validBoardUrl(v: string): string | null {
   try {
     const u = new URL(v);
-    return u.protocol === "https:" ? u.toString() : null;
+    return u.protocol === "https:" && !u.username && !u.password && /(^|\.)figma\.com$/.test(u.hostname) ? u.toString() : null;
   } catch {
     return null;
   }
@@ -89,7 +89,7 @@ export function BoardLink({ sessionId, boardUrl, onSaved }: { sessionId: string;
     void save(url);
   }
 
-  const figma = boardUrl ? /(^|\.)figma\.com$/.test(new URL(boardUrl).hostname) : false;
+  const safeBoardUrl = boardUrl ? validBoardUrl(boardUrl) : null;
 
   return (
     <div className="rd-board">
@@ -101,10 +101,10 @@ export function BoardLink({ sessionId, boardUrl, onSaved }: { sessionId: string;
           {boardUrl && <button type="button" className="rd-btn rd-btn--small rd-btn--ghost" disabled={busy} onClick={() => save(null)}>Remove</button>}
           <button type="button" className="rd-btn rd-btn--small rd-btn--ghost" disabled={busy} onClick={() => { setEditing(false); setMessage(null); }}>Cancel</button>
         </form>
-      ) : boardUrl ? (
+      ) : safeBoardUrl ? (
         <div className="rd-board-view">
-          <a className="rd-btn rd-btn--small" href={boardUrl} target="_blank" rel="noopener noreferrer">Open {figma ? "FigJam board" : "board"} <span aria-hidden="true">↗</span></a>
-          <button type="button" className="rd-link-btn" onClick={() => { setValue(boardUrl); setEditing(true); }}>Change</button>
+          <a className="rd-btn rd-btn--small" href={safeBoardUrl} target="_blank" rel="noopener noreferrer">Open FigJam board <span aria-hidden="true">↗</span></a>
+          <button type="button" className="rd-link-btn" onClick={() => { setValue(safeBoardUrl); setEditing(true); }}>Change</button>
         </div>
       ) : (
         <button type="button" className="rd-btn rd-btn--small rd-btn--ghost" onClick={() => { setValue(""); setEditing(true); }}>Add board link</button>

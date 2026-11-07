@@ -11,7 +11,12 @@ export type Route =
   | { name: "session"; projectId: string; sessionId: string };
 
 export function parseRoute(hash: string): Route {
-  const parts = hash.replace(/^#\/?/, "").split("/").filter(Boolean).map(decodeURIComponent);
+  let parts: string[];
+  try {
+    parts = hash.replace(/^#\/?/, "").split("/").filter(Boolean).map(decodeURIComponent);
+  } catch {
+    return { name: "projects" };
+  }
   if (parts[0] === "projects" && parts[1]) {
     if (parts[2] === "sessions" && parts[3]) return { name: "session", projectId: parts[1], sessionId: parts[3] };
     return { name: "project", projectId: parts[1] };

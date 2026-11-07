@@ -37,14 +37,14 @@ export function SessionView({ projectId, sessionId }: { projectId: string; sessi
 
   const running = isRunning(session.data);
   const poll = useBoundedPolling({
-    enabled: running,
-    intervalMs: POLL.jobIntervalMs,
-    maxAttempts: POLL.jobMaxAttempts,
-    resetKey: `${sessionId}:${session.data?.job?.id ?? "none"}`,
+    enabled: running || (workspace.kind === "backend" && Boolean(session.data)),
+    intervalMs: running ? POLL.jobIntervalMs : POLL.reviewIntervalMs,
+    maxAttempts: running ? POLL.jobMaxAttempts : POLL.reviewMaxAttempts,
+    resetKey: `${sessionId}:${session.data?.job?.id ?? "none"}:${running}`,
     tick: async (signal) => {
       const next = await workspace.getSession(sessionId, signal);
       setData(() => next);
-      return isRunning(next) ? "continue" : "stop";
+      return workspace.kind === "backend" || isRunning(next) ? "continue" : "stop";
     },
   });
 
@@ -185,7 +185,11 @@ export function SessionView({ projectId, sessionId }: { projectId: string; sessi
 
       {analyzeState.error ? <ErrorNotice error={analyzeState.error} title="Couldn’t start analysis" onRetry={analyze} /> : null}
       <ExportFeedback state={exportState} onDismiss={() => setExportState({ state: "idle" })} preview={workspace.kind === "preview"} />
-      {s.job && (running || s.job.status === "failed" || poll.status === "error") && <JobProgress job={s.job} poll={poll} onRetryPoll={poll.restart} />}
+      {s.job && (running || s.job.status === "failed") && <JobProgress job={s.job} poll={poll} onRetryPoll={poll.restart} />}
+      {!running && workspace.kind === "backend" && <p className="rd-fine rd-session-foot">
+        {poll.status === "exhausted" ? <>Review updates paused. <button type="button" className="rd-link-btn" onClick={poll.restart}>Resume updates</button></> : poll.status === "paused" ? "Review updates pause while this tab is hidden." : "Review changes refresh every 5 seconds while this tab is visible."}
+      </p>}
+      {!running && poll.status === "error" && <ErrorNotice error={poll.error} title="Review updates stopped" onRetry={poll.restart} />}
       {session.error && session.data ? <ErrorNotice error={session.error} title="Showing the last loaded version" onRetry={session.reload} /> : null}
 
       <div className="rd-session-grid">

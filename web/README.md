@@ -55,10 +55,10 @@ Responses are normalized defensively (`lib/dashboard/backend.ts`). Assumptions t
 
 SpacetimeDB subscriptions are **not** wired in v1 — the backend owns the module and its bindings aren't ready. Instead:
 
-- Session detail polls `GET /v1/sessions/{id}` every 2.5 s only while a job is queued/running **and** the tab is visible, capped at 144 polls (~6 min) per job; then it stops and offers "Check again". Errors halt polling and show Retry.
+- Session detail polls `GET /v1/sessions/{id}` every 2.5 s while a job is queued/running and the tab is visible, capped at 144 polls (~6 min) per job. Completed backend sessions refresh every 5 s, capped at 144 polls (~12 min), so reviewers see each other's corrections. The user can explicitly resume updates after the budget is exhausted. Errors halt polling and show Retry.
 - Pairings poll `GET /v1/pairings/{id}` every 3 s while visible, until approved or expired.
 - Every request has a 15 s timeout and is cancelled on navigation/unmount. No automatic retries.
-- In backend mode, a correction made in one window appears in another on its next load/poll; live multi-window sync for real data will come from SpacetimeDB later. In the preview workspace, two windows sync immediately through `storage` events.
+- In backend mode, a correction made in one visible window appears in another within the next review refresh (normally 5 s); direct subscriptions will replace polling when SpacetimeDB integration is ready. In the preview workspace, two windows sync immediately through `storage` events.
 
 ## Deployment
 

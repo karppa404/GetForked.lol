@@ -71,7 +71,7 @@ export function normalizeSessionDetail(raw: unknown): SessionDetail {
   const pick = (k: string) => o[k] ?? manifest[k];
   const summary = normalizeSummary({ ...manifest, ...o });
   const graph = normalizeGraph(o.graph ?? analysis.graph);
-  const networkStatus = normalizeNetworkStatus(o.network_status ?? graph?.network_status ?? (arr(pick("network")).length ? "observed" : "not_captured"));
+  const networkStatus = normalizeNetworkStatus(pick("network_status") ?? graph?.network_status ?? (arr(pick("network")).length ? "observed" : "not_captured"));
   return {
     ...summary,
     network_status: networkStatus,
@@ -171,10 +171,20 @@ export function createBackendWorkspace(client: ApiClient): Workspace {
     },
     async frameImage(_sessionId, imageUrl, signal) {
       const isAbsolute = /^https?:\/\//.test(imageUrl);
-      if (isAbsolute && !imageUrl.startsWith(client.baseUrl)) return imageUrl; // pre-signed URL from the API
+      if (isAbsolute) {
+        const target = new URL(imageUrl);
+        const base = new URL(client.baseUrl);
+        if (target.username || target.password) throw new ApiError("parse", "Invalid screenshot URL");
+        if (target.origin !== base.origin) {
+          if (target.protocol !== "https:") throw new ApiError("parse", "External screenshots must use HTTPS");
+          return target.href; // pre-signed object-storage URL; never send the API bearer token
+        }
+        if (!imageUrl.startsWith(`${client.baseUrl}/`)) throw new ApiError("parse", "Screenshot URL is outside the API path");
+      }
       const rel = isAbsolute ? imageUrl.slice(client.baseUrl.length) : imageUrl;
-      const res = await client.request<Response>("GET", rel.startsWith("/") ? rel : `/${rel}`, { signal, raw: true });
-      return URL.createObjectURL(await res.blob());
+      const blob = await client.request<Blob>("GET", rel.startsWith("/") ? rel : `/${rel}`, { signal, responseType: "blob" });
+      if (signal?.aborted) throw new ApiError("aborted", "Request cancelled");
+      return URL.createObjectURL(blob);
     },
   };
 }

@@ -139,7 +139,7 @@ function ElementDetail({ id, model, onSelect, onRename, onRestore }: { id: strin
 
       <section className="rd-insp-section">
         <h3>Supporting evidence <span className="rd-count">{evidence.length}</span></h3>
-        {evidence.length === 0 && <p className="rd-muted">No evidence cited.{el.kind === "edge" && el.edge.association === "candidate" ? " Candidate connections can be purely inferred." : ""}</p>}
+        {evidence.length === 0 && <p className="rd-muted">No evidence cited. This element needs review before it can be relied on.</p>}
         {missing > 0 && <p className="rd-form-error">{missing} cited evidence {missing === 1 ? "item is" : "items are"} missing from this session.</p>}
         <ul className="rd-evidence-list">
           {evidence.map((item) => (
@@ -186,7 +186,7 @@ function EvidenceDetail({ item, model, onSelect }: { item: EvidenceItem; model: 
   const citedBy = model.citations.get(item.id) ?? [];
   const relatedFrames: { caption: string; frame: Frame }[] = [];
   if (item.kind === "interaction") {
-    for (const [caption, fid] of [["Before", item.data.before_frame_id], ["After", item.data.after_frame_id]] as const) {
+    for (const [caption, fid] of [["Before", item.data.before_frame_id], ["After", item.data.after_frame_id], ["Settled", item.data.delayed_frame_id]] as const) {
       const f = fid ? model.evidenceById.get(fid) : undefined;
       if (f?.kind === "frame") relatedFrames.push({ caption, frame: f.data });
     }

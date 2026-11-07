@@ -59,6 +59,13 @@ describe("validateGraph", () => {
     const corrected = applyCorrections(base, [{ element_id: "a", label: " " }]);
     expect(validateGraph(corrected).errors).toContain("Node a: label is empty.");
   });
+
+  it("rejects both observed and candidate relationships without supporting evidence", () => {
+    for (const association of ["observed", "candidate"]) {
+      const graph = { ...base, edges: [{ ...base.edges[0], association, evidence_ids: [] }] };
+      expect(validateGraph(graph, new Set(["ev1"])).errors).toContain("Edge e cites no supporting evidence.");
+    }
+  });
 });
 
 describe("corrections", () => {

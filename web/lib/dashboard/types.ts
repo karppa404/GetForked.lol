@@ -83,6 +83,7 @@ export interface Interaction {
   accessibility?: { role?: string; title?: string; label?: string; [k: string]: unknown } | null;
   before_frame_id?: string;
   after_frame_id?: string;
+  delayed_frame_id?: string;
 }
 
 export interface Frame {
