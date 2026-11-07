@@ -1,6 +1,6 @@
 # Retrace API (backend)
 
-Python 3.11+ FastAPI service: browser auth, room pairing, private evidence ingestion,
+Python 3.11+ FastAPI service: browser auth, local device connection, private evidence ingestion,
 bounded four-stage Nemotron analysis, and shared state in SpacetimeDB.
 
 ```bash
@@ -44,7 +44,12 @@ Errors are always `{"error": "<code>", "message": "...", "details"?: [...]}`.
 - `GET /v1/projects/{project_id}/devices` → `{devices: [{device_id, project_id, device_name, created_at, last_used_at, revoked}]}`
 - `DELETE /v1/devices/{device_id}` → 204 (browser owner). Device self-service: `GET /v1/devices/me`, `DELETE /v1/devices/me`.
 
-### Pairing
+### Local connection (recorder, development only)
+- `POST /v1/local/connect` `{device_name}` (no auth) → 201 `{device_token, device_id, project_id, project_name: "Local workspace", api_base_url}`.
+  Finds or creates one `Local workspace` project owned by the developer sign-in account (`dev@localhost`, the `/v1/auth/dev` default), so the dashboard sees uploads.
+  404 unless `RETRACE_DEV_AUTH=1` (never in production). 403 unless the TCP peer and `Host` are loopback, no forwarding headers are present, and `Origin` is absent or loopback (blocks cross-site requests from web pages). Each call issues a new device token.
+
+### Pairing (legacy compatibility; no longer used by the recorder)
 - `POST /v1/pairings` `{project_id}` (browser) → 201 `{pairing_id, code: "ABCD-EFGH", expires_at}`. 10 min TTL, single use. Codes are 8 chars from a 30-letter unambiguous alphabet; case, spaces and dashes are ignored.
 - `GET /v1/pairings/{pairing_id}` (browser) → `{pairing_id, project_id, status: "open"|"claimed"|"expired", expires_at, claims: [{claim_id, device_name, status: "pending"|"approved"|"rejected"|"completed"|"expired"}]}`. The code is not returned again.
 - `POST /v1/pairings/claim` `{code, device_name}` (no auth, 10/min/IP) → 201 `{claim_id, claim_secret, status: "pending"}`. Unknown, expired and used codes all return 400 `invalid_or_expired_code`.
@@ -74,7 +79,7 @@ Errors are always `{"error": "<code>", "message": "...", "details"?: [...]}`.
     board_url: string | null
   }
   SessionSummary = {id, project_id, status: "uploaded"|"queued"|"analyzing"|"analyzed"|"failed",
-    app: {name, bundle_id}, task, started_at, duration_ms,
+    app: {name, bundle_id}, task /* legacy, usually "" */, started_at, duration_ms,
     counts: {frames, interactions, network}, network_status, uploaded_at, uploaded_by_device}
   Job = {id, status: "queued"|"running"|"succeeded"|"failed", stage, error,
     usage: {calls, prompt_tokens, completion_tokens, estimated}, created_at, updated_at,

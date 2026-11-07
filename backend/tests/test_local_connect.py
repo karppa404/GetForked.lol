@@ -24,10 +24,13 @@ def test_connect_issues_device_for_shared_local_workspace(api, client):
     projects = client.get("/v1/projects", headers=user).json()["projects"]
     assert [p["id"] for p in projects] == [body["project_id"]]
 
-    # Existing upload flow works with the issued credential.
+    # Existing upload flow works with the issued credential; no task/reason is required.
     manifest, files = build_manifest(body["project_id"])
+    assert "task" not in manifest
     up = api.upload(device, manifest, files)
     assert up.status_code == 201, up.text
+    legacy, legacy_files = build_manifest(body["project_id"])
+    assert api.upload(device, legacy | {"task": ""}, legacy_files).status_code == 201
 
 
 def test_connect_allows_loopback_origin(client):

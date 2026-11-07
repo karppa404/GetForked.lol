@@ -9,8 +9,9 @@ INPUT_MARKER = "INPUT_JSON:"
 STAGE_MARKER = "RETRACE_STAGE:"
 
 COMMON = (
-    "You are part of Retrace, which documents a desktop workflow that a person demonstrated. "
+    "You are part of Retrace, which documents the activity a person performed in one desktop app while they worked. "
     "You analyze captured evidence only; you never operate the application. "
+    "Describe only activity the evidence shows; never guess the person's goal, task or intent. "
     "Every element you output MUST cite evidence_ids copied exactly from the input. "
     "Do not invent evidence IDs, screens, endpoints or causality. Passive capture shows timing, not causation: "
     "API associations are candidates. Never present a modernization idea as observed; put ideas in suggestions. "

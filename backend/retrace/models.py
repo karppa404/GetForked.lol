@@ -273,7 +273,7 @@ class Manifest(Strict):
     id: UUID
     project_id: str = Field(min_length=1, max_length=64)
     app: AppInfo
-    task: str = Field(min_length=1, max_length=2000)
+    task: str = Field(default="", max_length=2000)  # legacy; recorders no longer ask for intent
     started_at: datetime
     duration_ms: int = Field(ge=0, le=6 * 3600 * 1000)
     interactions: list[Interaction]

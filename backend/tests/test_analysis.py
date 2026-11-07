@@ -150,6 +150,7 @@ class FakeNemotron:
         assert request.headers["authorization"] == f"Bearer {SECRET_KEY}"
         body = json.loads(request.content)
         stage, payload = parse_messages(body["messages"])
+        assert "task" not in payload and "never guess" in body["messages"][0]["content"]
         self.calls.append((stage, body["model"], body["max_tokens"]))
         reply = self.script[stage].pop(0) if self.script.get(stage) else {}
         if isinstance(reply, int):
