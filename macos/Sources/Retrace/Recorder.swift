@@ -270,7 +270,10 @@ final class Recorder: ObservableObject {
     private var targetIsFrontmost: Bool { NSWorkspace.shared.frontmostApplication?.processIdentifier == targetPID }
 
     private func handle(_ event: NSEvent) {
-        guard state == .recording, targetIsFrontmost else {
+        let pre = CapturePolicy.evaluate(recording: state == .recording, targetPID: targetPID,
+                                         frontmostPID: NSWorkspace.shared.frontmostApplication?.processIdentifier,
+                                         ownerPID: targetPID, kind: .pointer)
+        guard pre == .accept else {
             if state != .idle { droppedCount += 1 }
             return
         }
@@ -287,10 +290,14 @@ final class Recorder: ObservableObject {
     /// Returns nil (drop) unless the thing under the pointer belongs to the target PID.
     private func verifyPointer(_ event: NSEvent) -> PointerHit? {
         guard let location = event.cgEvent?.location else { return nil }
-        if let element = AXInspector.element(at: location), let pid = AXInspector.pid(of: element) {
-            return pid == targetPID ? PointerHit(point: location, snapshot: AXInspector.snapshot(of: element)) : nil
-        }
-        return AXInspector.windowOwnerPID(at: location) == targetPID ? PointerHit(point: location, snapshot: nil) : nil
+        let element = AXInspector.element(at: location)
+        let owner = element.flatMap(AXInspector.pid(of:)) ?? AXInspector.windowOwnerPID(at: location)
+        let decision = CapturePolicy.evaluate(recording: state == .recording, targetPID: targetPID,
+                                              frontmostPID: NSWorkspace.shared.frontmostApplication?.processIdentifier,
+                                              ownerPID: owner, kind: .pointer)
+        guard decision == .accept else { return nil }
+        let snapshot = element.flatMap { AXInspector.pid(of: $0) == targetPID ? AXInspector.snapshot(of: $0) : nil }
+        return PointerHit(point: location, snapshot: snapshot)
     }
 
     private func displayRelative(_ p: CGPoint) -> (Double?, Double?) {
@@ -308,13 +315,12 @@ final class Recorder: ObservableObject {
         case .otherMouseDown: kind = .otherClick
         default: kind = event.clickCount >= 2 ? .doubleClick : .click
         }
-        if event.type == .leftMouseDown, event.modifierFlags.contains(.control) { /* ctrl-click is still recorded as click */ }
         let (x, y) = displayRelative(hit.point)
         let it = Interaction(timestampMs: clock.milliseconds(atUptime: event.timestamp), kind: kind, x: x, y: y,
                              accessibility: hit.snapshot, beforeFrameId: beforeFrame(for: event.timestamp))
         record(it)
-        attachFrame(to: it.id, slot: \.afterFrameId, delay: 0.35, from: event.timestamp)
-        attachFrame(to: it.id, slot: \.delayedFrameId, delay: 1.5, from: event.timestamp)
+        attachFrame(to: it.id, slot: \.afterFrameId, delay: CapturePolicy.afterDelay, from: event.timestamp)
+        attachFrame(to: it.id, slot: \.delayedFrameId, delay: CapturePolicy.settledDelay, from: event.timestamp)
     }
 
     private func handleScroll(_ event: NSEvent) {
@@ -346,7 +352,10 @@ final class Recorder: ObservableObject {
 
     private func handleKey(_ event: NSEvent) {
         // Keys must be going to the target per Accessibility as well as NSWorkspace.
-        guard AXInspector.focusedApplicationPID() == targetPID else { droppedCount += 1; return }
+        let decision = CapturePolicy.evaluate(recording: state == .recording, targetPID: targetPID,
+                                              frontmostPID: NSWorkspace.shared.frontmostApplication?.processIdentifier,
+                                              ownerPID: AXInspector.focusedApplicationPID(), kind: .key)
+        guard decision == .accept else { droppedCount += 1; return }
         var mods: KeyNaming.Modifiers = []
         let flags = event.modifierFlags
         if flags.contains(.command) { mods.insert(.command) }
@@ -379,8 +388,8 @@ final class Recorder: ObservableObject {
             let it = Interaction(timestampMs: clock.milliseconds(atUptime: t), kind: .key, key: name,
                                  accessibility: focused, beforeFrameId: beforeFrame(for: t))
             record(it)
-            attachFrame(to: it.id, slot: \.afterFrameId, delay: 0.35, from: t)
-            attachFrame(to: it.id, slot: \.delayedFrameId, delay: 1.5, from: t)
+            attachFrame(to: it.id, slot: \.afterFrameId, delay: CapturePolicy.afterDelay, from: t)
+            attachFrame(to: it.id, slot: \.delayedFrameId, delay: CapturePolicy.settledDelay, from: t)
         }
     }
 
@@ -429,7 +438,7 @@ final class Recorder: ObservableObject {
     }
 
     private func beforeFrame(for uptime: TimeInterval) -> String? {
-        guard let c = cache, c.image.uptime <= uptime, uptime - c.image.uptime < 3.0 else { return nil }
+        guard let c = cache, CapturePolicy.isUsableBeforeFrame(frameUptime: c.image.uptime, eventUptime: uptime) else { return nil }
         if let id = c.frameId { return id }
         guard let id = reserveFrame() else { return nil }
         cache?.frameId = id
@@ -458,7 +467,7 @@ final class Recorder: ObservableObject {
 
     private func scheduledCapture(at target: TimeInterval) -> Task<String?, Never> {
         scheduled = scheduled.filter { $0.value.target > now - 5 }
-        let bucket = Int((target * 5).rounded())
+        let bucket = CapturePolicy.coalescingBucket(forUptime: target)
         if let existing = scheduled[bucket] { return existing.task }
         let task = Task { @MainActor [weak self] () -> String? in
             let wait = target - ProcessInfo.processInfo.systemUptime
