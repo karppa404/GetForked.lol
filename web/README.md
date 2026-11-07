@@ -57,3 +57,9 @@ The workspace reads `GET /v1/realtime`. When SpacetimeDB is ready it subscribes 
 ### API usage
 
 `POST /v1/auth/dev`, `GET/POST /v1/projects`, `GET /v1/projects/{id}/sessions`, `GET /v1/sessions/{id}`, `POST /v1/sessions/{id}/analyze`, `PUT|DELETE /v1/sessions/{id}/corrections/{element_id}`, `GET /v1/sessions/{id}/graph`, `PUT /v1/sessions/{id}/board` (a 404, 405 or 501 response is reported as unsupported), `GET /v1/realtime`, `POST|DELETE /v1/projects/{id}/realtime-viewers`. Responses are normalized defensively in `lib/dashboard/backend.ts`.
+
+## Rebuild the edited demo
+
+`web/public/demo/retrace-demo.mp4` is a silent 22-second H.264 edit with fast-start metadata, a WebP poster, and English captions. It combines reviewed native UI captures, an actual app-scoped Mail settings frame, and a clearly labeled separate synthetic fixture analyzed by Nemotron. Mail evidence was not sent to inference. The original UI captures remain in the ignored `release/demo-source/` directory.
+
+To reproduce on macOS with FFmpeg installed: `uv run --with pillow python scripts/edit-demo.py release/demo-source` from the repository root. The renderer checks codec, size and duration with ffprobe. Rebuild Next.js after replacing the assets.

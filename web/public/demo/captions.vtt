@@ -1,0 +1,25 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:03.600
+Choose an app. Keep working.
+No task prompt. No room code. Start observing on your Mac.
+
+00:00:03.600 --> 00:00:07.200
+Work in the app you already use.
+Mail settings walkthrough. No messages sent or preferences changed.
+
+00:00:07.200 --> 00:00:10.800
+Move between screens naturally.
+The recorder pauses whenever the selected app loses focus.
+
+00:00:10.800 --> 00:00:14.400
+Keep the evidence in scope.
+A real ScreenCaptureKit frame containing only Mail's window.
+
+00:00:14.400 --> 00:00:18.000
+Review before you share.
+Inspect frames and omit sensitive evidence before Upload & Analyze.
+
+00:00:18.000 --> 00:00:22.000
+Inspect the map. Follow the evidence.
+Separate synthetic fixture analyzed by Nemotron; this is not Mail analysis.
