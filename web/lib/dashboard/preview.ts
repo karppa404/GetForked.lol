@@ -8,7 +8,7 @@ import type { Correction, Graph, Job, JobStage, Pairing, Project, SessionDetail,
 import type { Workspace } from "./workspace";
 
 export const PREVIEW_STORAGE_KEY = "retrace.preview-workspace.v1";
-export const PREVIEW_STAGE_MS = 1800;
+export const PREVIEW_STAGE_MS = 3000;
 
 export interface PreviewDelta {
   version: 1;

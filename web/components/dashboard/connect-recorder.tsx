@@ -106,7 +106,14 @@ export function ConnectRecorder({ projectId }: { projectId: string }) {
           {workspace.kind === "preview" && !approved && !expired && pairing.claims.length === 0 && (
             <div className="rd-preview-callout">
               <p>Preview: no real Mac can join this sample code.</p>
-              <button type="button" className="rd-btn rd-btn--ghost rd-btn--small" onClick={() => { workspace.simulateClaim?.(pairing.pairing_id); poll.restart(); }}>
+              <button type="button" className="rd-btn rd-btn--ghost rd-btn--small" onClick={async () => {
+                  workspace.simulateClaim?.(pairing.pairing_id);
+                  try {
+                    setPairing(await workspace.getPairing(pairing.pairing_id));
+                  } catch (e) {
+                    setError(e);
+                  }
+                }}>
                 Simulate a recorder claim
               </button>
             </div>
