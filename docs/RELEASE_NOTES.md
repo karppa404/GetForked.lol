@@ -1,6 +1,8 @@
-Retrace v0.1.0-alpha.3 is a localhost developer prerelease for Apple Silicon Macs running macOS 14 or later.
+Retrace v0.1.0-alpha.4 is a localhost developer prerelease for Apple Silicon Macs running macOS 14 or later.
 
 ## What changed
+
+- Original imagegen Retrace logo, Finder/Dock app icon, adaptive menu-bar mark, and matching web/favicons. [Masters and exact prompts](https://github.com/karppa404/HackUTD-2026/blob/main/assets/brand/README.md) are included in source.
 
 - Observe activity in a selected application without typing a task or reason.
 - Connect the recorder to Local workspace with one click. No room code or sign-in wall.
