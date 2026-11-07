@@ -10,10 +10,8 @@ export interface DashboardContextValue {
   workspace: Workspace;
   env: DashboardEnvironment;
   user: User | null;
-  signOut: () => void;
-  /** Explicit, user-initiated switch to the preview workspace. */
-  openPreview: () => void;
-  leavePreview: () => void;
+  /** Sign in to the local API again (also leaves the sample data). */
+  reconnect: () => void;
 }
 
 export const DashboardContext = createContext<DashboardContextValue | null>(null);
@@ -24,11 +22,20 @@ export function useDashboard(): DashboardContextValue {
   return v;
 }
 
-export function Brand({ compact = false }: { compact?: boolean }) {
+const ICONS = {
+  close: "M4 4l8 8M12 4l-8 8",
+  plus: "M8 3v10M3 8h10",
+  download: "M8 2.5v8m0 0L4.75 7.25M8 10.5l3.25-3.25M3 13.5h10",
+  external: "M6.5 3.5h-3v9h9v-3M9 3h4v4M13 3L7.5 8.5",
+  refresh: "M13 8a5 5 0 1 1-1.46-3.54M13 3v2.5h-2.5",
+  back: "M10 3.5L5.5 8l4.5 4.5",
+} as const;
+
+export function Icon({ name }: { name: keyof typeof ICONS }) {
   return (
-    <a className={`rd-brand${compact ? " rd-brand--compact" : ""}`} href="/" aria-label="Retrace home">
-      <span className="rd-brand-mark" aria-hidden="true">↶</span>retrace<span className="rd-brand-period">.</span>
-    </a>
+    <svg className="rd-icon" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      <path d={ICONS[name]} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 
@@ -53,7 +60,6 @@ export function LoadingBlock({ label }: { label: string }) {
 export function ErrorNotice({ error, title = "Something went wrong", onRetry, children }: { error: unknown; title?: string; onRetry?: () => void; children?: ReactNode }) {
   return (
     <div className="rd-notice rd-notice--error" role="alert">
-      <span className="rd-notice-icon" aria-hidden="true">!</span>
       <div>
         <strong>{title}</strong>
         <p>{describeError(error)}</p>
@@ -68,10 +74,9 @@ export function ErrorNotice({ error, title = "Something went wrong", onRetry, ch
   );
 }
 
-export function EmptyState({ symbol, title, children, action }: { symbol: string; title: string; children?: ReactNode; action?: ReactNode }) {
+export function EmptyState({ title, children, action }: { title: string; children?: ReactNode; action?: ReactNode }) {
   return (
     <div className="rd-empty">
-      <span className="rd-empty-symbol" aria-hidden="true">{symbol}</span>
       <h3>{title}</h3>
       {children && <div className="rd-empty-body">{children}</div>}
       {action && <div className="rd-empty-action">{action}</div>}
@@ -79,8 +84,40 @@ export function EmptyState({ symbol, title, children, action }: { symbol: string
   );
 }
 
+/** Honest "backend is stopped" screen; never falls back to sample data on its own. */
+export function ConnectionError({ env, error, onRetry, onPreview }: { env: DashboardEnvironment; error: unknown; onRetry: () => void; onPreview: () => void }) {
+  if (env.problem) {
+    return (
+      <section className="rd-connect-error" aria-labelledby="rd-conn-title">
+        <h1 id="rd-conn-title">Retrace runs on this Mac only</h1>
+        <p>
+          {env.problem === "page_not_local"
+            ? "Open the workspace from http://127.0.0.1:3000 or http://localhost:3000 on the Mac running the Retrace API."
+            : "NEXT_PUBLIC_API_BASE_URL must point to a loopback address such as http://127.0.0.1:8000. Remote APIs are not supported."}
+        </p>
+        <div className="rd-connect-actions">
+          <button type="button" className="rd-btn rd-btn--ghost" onClick={onPreview}>View sample data</button>
+        </div>
+      </section>
+    );
+  }
+  return (
+    <section className="rd-connect-error" aria-labelledby="rd-conn-title">
+      <h1 id="rd-conn-title">Can’t connect to the local Retrace API</h1>
+      <p>{describeError(error)}</p>
+      <p className="rd-muted">Start the API on this Mac, then try again:</p>
+      <pre className="rd-code">cd backend{"\n"}RETRACE_DEV_AUTH=1 uv run python -m retrace</pre>
+      <p className="rd-fine">Expected at <code>{env.apiBaseUrl}</code>. See <code>web/README.md</code> for the full local setup.</p>
+      <div className="rd-connect-actions">
+        <button type="button" className="rd-btn rd-btn--primary" onClick={onRetry}>Try again</button>
+        <button type="button" className="rd-btn rd-btn--ghost" onClick={onPreview}>View sample data</button>
+      </div>
+    </section>
+  );
+}
+
 const STATUS_COPY: Record<string, { label: string; tone: string }> = {
-  uploaded: { label: "Ready to analyze", tone: "neutral" },
+  uploaded: { label: "Not analyzed", tone: "neutral" },
   queued: { label: "Queued", tone: "progress" },
   analyzing: { label: "Analyzing", tone: "progress" },
   running: { label: "Analyzing", tone: "progress" },
@@ -101,19 +138,14 @@ export function StatusPill({ status }: { status: SessionStatus }) {
 
 const NETWORK_COPY: Record<NetworkStatus, { label: string; title: string }> = {
   observed: { label: "Network observed", title: "Network capture was on and requests were recorded." },
-  none_observed: { label: "No requests observed", title: "Network capture was on, but no requests happened during this task." },
-  not_captured: { label: "Network not captured", title: "This session was recorded without network capture." },
+  none_observed: { label: "No requests observed", title: "Network capture was on, but no requests happened during this recording." },
+  not_captured: { label: "Network not captured", title: "This recording was made without network capture." },
 };
 
 export function NetworkBadge({ status }: { status?: NetworkStatus }) {
   if (!status) return null;
   const c = NETWORK_COPY[status];
-  return (
-    <span className={`rd-net rd-net--${status}`} title={c.title}>
-      <span aria-hidden="true">{status === "observed" ? "⇄" : status === "none_observed" ? "∅" : "⊘"}</span>
-      {c.label}
-    </span>
-  );
+  return <span className={`rd-net rd-net--${status}`} title={c.title}>{c.label}</span>;
 }
 
 const dateFmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -124,4 +156,9 @@ export function formatDate(iso?: string, withTime = false): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
   return (withTime ? dateTimeFmt : dateFmt).format(d);
+}
+
+/** Recordings have no user-written title: identify them by app and start time. */
+export function recordingTitle(s: { app: { name: string }; started_at: string }): string {
+  return `${s.app.name} · ${formatDate(s.started_at, true)}`;
 }

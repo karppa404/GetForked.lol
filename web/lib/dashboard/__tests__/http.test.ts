@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createBackendWorkspace, normalizeSessionDetail } from "../backend";
+import { createBackendWorkspace, normalizeSessionDetail, signInForDevelopment } from "../backend";
 import { resolveEnvironment } from "../config";
 import { ApiError, createApiClient } from "../http";
 import { parseRoute } from "../hooks";
@@ -62,7 +62,7 @@ describe("api client", () => {
     const onUnauthorized = vi.fn();
     const fetchImpl = vi.fn(async () => jsonResponse({ detail: "bad credential" }, 401));
     const client = createApiClient({ baseUrl: "http://x", getToken: () => "t", onUnauthorized, fetchImpl });
-    await expect(client.post("/v1/auth/google", { credential: "c" }, { anonymous: true })).rejects.toBeInstanceOf(ApiError);
+    await expect(client.post("/v1/auth/dev", {}, { anonymous: true })).rejects.toBeInstanceOf(ApiError);
     const init = (fetchImpl.mock.calls[0] as unknown as [string, RequestInit])[1];
     expect((init.headers as Record<string, string>).Authorization).toBeUndefined();
     expect(onUnauthorized).not.toHaveBeenCalled();
@@ -91,13 +91,21 @@ describe("api client", () => {
     await expect(createBackendWorkspace(client).saveBoardUrl("s1", "https://www.figma.com/board/abc")).resolves.toEqual({ status: "unsupported" });
   });
 
-  it("encodes path ids and posts pairing approvals with the claim id", async () => {
-    const fetchImpl = vi.fn(async () => jsonResponse({}));
+  it("encodes path ids in request paths", async () => {
+    const fetchImpl = vi.fn(async () => jsonResponse({ element_id: "n/1", label: "x" }));
     const ws = createBackendWorkspace(createApiClient({ baseUrl: "http://x", fetchImpl }));
-    await ws.approveClaim("p/1", "claim-9");
+    await ws.correctLabel("s/1", "n/1", "x");
+    const [url] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("http://x/v1/sessions/s%2F1/corrections/n%2F1");
+  });
+  it("signs in locally through POST /v1/auth/dev without a bearer token", async () => {
+    const fetchImpl = vi.fn(async () => jsonResponse({ access_token: "t", user: { email: "dev@localhost" } }));
+    const auth = await signInForDevelopment(createApiClient({ baseUrl: "http://127.0.0.1:8000", fetchImpl, getToken: () => "stale" }));
     const [url, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
-    expect(url).toBe("http://x/v1/pairings/p%2F1/approve");
-    expect(JSON.parse(init.body as string)).toEqual({ claim_id: "claim-9" });
+    expect(url).toBe("http://127.0.0.1:8000/v1/auth/dev");
+    expect(init.method).toBe("POST");
+    expect((init.headers as Record<string, string>).Authorization).toBeUndefined();
+    expect(auth.access_token).toBe("t");
   });
 });
 
@@ -111,7 +119,6 @@ describe("session normalization", () => {
     const d = normalizeSessionDetail({
       id: "s",
       project_id: "p",
-      task: "Do it",
       app: { name: "App" },
       started_at: "2026-11-01T00:00:00Z",
       duration_ms: 1000,
@@ -138,11 +145,10 @@ describe("environment", () => {
     expect(parseRoute("#/projects/%E0%A4%A")).toEqual({ name: "projects" });
     expect(parseRoute("#/projects/demo%20app")).toEqual({ name: "project", projectId: "demo app" });
   });
-  it("defaults to the loopback API only on localhost and gates dev auth to loopback", () => {
-    expect(resolveEnvironment("localhost", {})).toMatchObject({ apiBaseUrl: "http://127.0.0.1:8000", devAuthAvailable: true, canSignIn: true });
-    expect(resolveEnvironment("retrace.vercel.app", {})).toMatchObject({ apiBaseUrl: null, canSignIn: false, devAuthAvailable: false });
-    expect(resolveEnvironment("retrace.vercel.app", { apiBaseUrl: "https://api.example.com" })).toMatchObject({ canSignIn: false, devAuthAvailable: false });
-    expect(resolveEnvironment("retrace.vercel.app", { apiBaseUrl: "https://api.example.com", googleClientId: "id" })).toMatchObject({ canSignIn: true });
-    expect(resolveEnvironment("localhost", { apiBaseUrl: "https://api.example.com" }).devAuthAvailable).toBe(false);
+  it("is localhost-only: page and API must both be loopback", () => {
+    expect(resolveEnvironment("localhost", undefined)).toEqual({ apiBaseUrl: "http://127.0.0.1:8000", problem: null });
+    expect(resolveEnvironment("127.0.0.1", "http://localhost:9000/")).toEqual({ apiBaseUrl: "http://localhost:9000", problem: null });
+    expect(resolveEnvironment("retrace.example.com", undefined)).toEqual({ apiBaseUrl: null, problem: "page_not_local" });
+    expect(resolveEnvironment("localhost", "https://api.example.com")).toEqual({ apiBaseUrl: null, problem: "api_not_local" });
   });
 });

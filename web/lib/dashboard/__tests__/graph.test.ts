@@ -17,7 +17,7 @@ describe("sample graphs", () => {
   it("every preview graph validates against its own evidence", () => {
     PREVIEW_SESSIONS.forEach((s, i) => {
       const result = validateGraph(s.graph, evidenceSet(i));
-      expect(result.errors, s.detail.task).toEqual([]);
+      expect(result.errors, s.detail.id).toEqual([]);
     });
   });
 

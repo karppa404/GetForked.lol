@@ -1,4 +1,5 @@
 "use client";
+import "@xyflow/react/dist/style.css";
 
 import {
   Background,
@@ -48,7 +49,6 @@ const RetraceNode = memo(function RetraceNode({ id, data, selected }: NodeProps<
     >
       <Handle type="target" position={Position.Left} className="rd-handle" isConnectable={false} />
       <div className="rd-gnode-type">
-        <span aria-hidden="true">{kind === "screen" ? "▢" : kind === "action" ? "↖" : "⇄"}</span>
         {typeLabel(data.type)}
         {data.ambiguous && <span className="rd-gnode-flag" title="Has an open question">?</span>}
       </div>
@@ -143,12 +143,12 @@ function CanvasInner({ view, selection, highlightedIds, editedIds, ambiguousIds,
           id: e.id,
           source: e.source,
           target: e.target,
-          label: editedIds.has(e.id) ? `${e.label} ✎` : e.label,
+          label: editedIds.has(e.id) ? `${e.label} (edited)` : e.label,
           type: "smoothstep",
           selected: e.id === selectedId,
           ariaLabel: `${candidate ? "Candidate" : "Observed"} connection: ${e.label}`,
           className: `rd-gedge${candidate ? " rd-gedge--candidate" : ""}${active ? " is-active" : ""}`,
-          markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16, color: active ? "#eb603b" : candidate ? "#d39a7e" : "#a7ad9a" },
+          markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16, color: active || candidate ? "var(--rd-accent)" : "var(--rd-faint)" },
           labelBgPadding: [6, 3] as [number, number],
           labelBgBorderRadius: 4,
           interactionWidth: 18,
@@ -191,7 +191,7 @@ function CanvasInner({ view, selection, highlightedIds, editedIds, ambiguousIds,
         fitViewOptions={{ padding: 0.18, maxZoom: 1.1 }}
         proOptions={{ hideAttribution: true }}
       >
-        <Background variant={BackgroundVariant.Dots} gap={14} size={1} color="#d6d9ce" />
+        <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
         <Controls showInteractive={false} position="bottom-right" />
       </ReactFlow>
       <button type="button" className="rd-canvas-reset rd-btn rd-btn--ghost rd-btn--small" onClick={resetLayout}>Reset layout</button>

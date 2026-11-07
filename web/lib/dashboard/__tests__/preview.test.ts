@@ -79,19 +79,12 @@ describe("preview workspace", () => {
     expect(done.graph?.network_status).toBe("not_captured");
   });
 
-  it("creates projects, and only simulates a claim on explicit request", async () => {
+  it("creates projects", async () => {
     const ws = createPreviewWorkspace(createPreviewStore(new MemoryStorage(), null), () => 7, 0);
     const p = await ws.createProject("  Sample CRM  ");
     expect(p.name).toBe("Sample CRM");
     expect((await ws.listProjects()).map((x) => x.name)).toContain("Sample CRM");
-    const pairing = await ws.createPairing(p.id);
-    expect(pairing.code).toMatch(/^[A-Z0-9]{6}$/);
-    expect((await ws.getPairing(pairing.pairing_id)).claims).toEqual([]);
-    ws.simulateClaim!(pairing.pairing_id);
-    const [claim] = (await ws.getPairing(pairing.pairing_id)).claims;
-    expect(claim.status).toBe("pending");
-    await ws.approveClaim(pairing.pairing_id, claim.claim_id);
-    expect((await ws.getPairing(pairing.pairing_id)).claims[0].status).toBe("approved");
+    expect(await ws.listSessions(p.id)).toEqual([]);
   });
 
   it("ignores corrupt or foreign storage contents", () => {

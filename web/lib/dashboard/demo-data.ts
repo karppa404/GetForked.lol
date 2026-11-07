@@ -1,4 +1,4 @@
-// Deterministic sample workspace for the Preview mode. Every app, task, request and screenshot
+// Deterministic sample workspace for the Preview mode. Every app, interaction, request and screenshot
 // here is fictional illustration — nothing was recorded or analyzed.
 
 import type { Ambiguity, Frame, Graph, GraphEdge, GraphNode, Interaction, NetworkEvent, NetworkStatus, Project, SessionDetail } from "./types";
@@ -21,7 +21,6 @@ type Step =
 interface SessionSeed {
   id: string;
   project_id: string;
-  task: string;
   app: { name: string; bundle_id: string };
   started_at: string;
   network_status: NetworkStatus;
@@ -43,7 +42,6 @@ const SEEDS: SessionSeed[] = [
   {
     id: "5e55a001-0000-4000-8000-00000000a001",
     project_id: "prj-ledgerly",
-    task: "Create and send an invoice",
     app: LEDGERLY,
     started_at: "2026-11-03T15:12:04Z",
     network_status: "observed",
@@ -71,7 +69,6 @@ const SEEDS: SessionSeed[] = [
   {
     id: "5e55a002-0000-4000-8000-00000000a002",
     project_id: "prj-ledgerly",
-    task: "Refund a partial payment",
     app: LEDGERLY,
     started_at: "2026-11-04T10:41:37Z",
     network_status: "none_observed",
@@ -91,7 +88,6 @@ const SEEDS: SessionSeed[] = [
   {
     id: "5e55a003-0000-4000-8000-00000000a003",
     project_id: "prj-ledgerly",
-    task: "Export the monthly report",
     app: LEDGERLY,
     started_at: "2026-11-06T09:02:15Z",
     network_status: "not_captured",
@@ -109,7 +105,6 @@ const SEEDS: SessionSeed[] = [
   {
     id: "5e55b001-0000-4000-8000-00000000b001",
     project_id: "prj-fieldnotes",
-    task: "Tag and archive a note",
     app: FIELDNOTES,
     started_at: "2026-11-02T20:14:50Z",
     network_status: "not_captured",
@@ -226,7 +221,6 @@ function build(seed: SessionSeed, sessionIndex: number): BuiltSession {
     detail: {
       id: seed.id,
       project_id: seed.project_id,
-      task: seed.task,
       app: seed.app,
       started_at: seed.started_at,
       duration_ms: t + 600,

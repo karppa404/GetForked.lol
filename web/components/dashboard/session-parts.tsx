@@ -5,9 +5,8 @@ import { POLL } from "@/lib/dashboard/config";
 import { describeError, isAbort } from "@/lib/dashboard/http";
 import type { PollStatus } from "@/lib/dashboard/hooks";
 import type { Job } from "@/lib/dashboard/types";
-import { ErrorNotice, Spinner, useDashboard } from "./ui";
+import { ErrorNotice, Icon, Spinner, useDashboard } from "./ui";
 
-const STAGE_SYMBOL: Record<string, string> = { done: "✓", running: "", failed: "!", skipped: "–", pending: "" };
 
 export function JobProgress({ job, poll, onRetryPoll }: { job: Job; poll: { status: PollStatus; error?: unknown }; onRetryPoll: () => void }) {
   const running = job.status === "queued" || job.status === "running";
@@ -30,7 +29,7 @@ export function JobProgress({ job, poll, onRetryPoll }: { job: Job; poll: { stat
         <ol className="rd-stages">
           {job.stages.map((s) => (
             <li key={s.name} className={`rd-stage rd-stage--${s.status}`} title={s.detail}>
-              <span className="rd-stage-mark" aria-hidden="true">{s.status === "running" ? <Spinner label="" /> : STAGE_SYMBOL[s.status] ?? ""}</span>
+              <span className="rd-stage-mark" aria-hidden="true">{s.status === "running" && <Spinner label="" />}</span>
               <span className="rd-stage-label">{s.label ?? s.name}</span>
               <span className="rd-visually-hidden">: {s.status}{s.detail ? `, ${s.detail}` : ""}</span>
             </li>
@@ -103,7 +102,7 @@ export function BoardLink({ sessionId, boardUrl, onSaved }: { sessionId: string;
         </form>
       ) : safeBoardUrl ? (
         <div className="rd-board-view">
-          <a className="rd-btn rd-btn--small" href={safeBoardUrl} target="_blank" rel="noopener noreferrer">Open FigJam board <span aria-hidden="true">↗</span></a>
+          <a className="rd-btn rd-btn--small" href={safeBoardUrl} target="_blank" rel="noopener noreferrer"><Icon name="external" /> Open FigJam board</a>
           <button type="button" className="rd-link-btn" onClick={() => { setValue(safeBoardUrl); setEditing(true); }}>Change</button>
         </div>
       ) : (

@@ -1,14 +1,14 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Retrace — Understand what you're rebuilding",
-  description: "Turn a demonstrated workflow into a map of screens, actions, and API dependencies. Understand an existing app before you rebuild it.",
-  openGraph: {
-    title: "Retrace — Understand what you're rebuilding",
-    description: "Show the workflow. See the system. Build what comes next.",
-    type: "website",
-  },
+  title: "Retrace",
+  description: "Retrace observes an app on your Mac while you work and maps its screens, actions and API calls from the evidence. Runs locally.",
+  robots: { index: false, follow: false },
+};
+
+export const viewport: Viewport = {
+  themeColor: [{ media: "(prefers-color-scheme: dark)", color: "#0a0a0b" }, { media: "(prefers-color-scheme: light)", color: "#ffffff" }],
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
