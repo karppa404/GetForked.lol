@@ -149,7 +149,7 @@ body:has(.rd-app) { background: var(--rd-bg, #fff); }
 /* ---------- shell ---------- */
 .rd-shell { display: grid; grid-template-columns: 232px minmax(0, 1fr); height: 100dvh; }
 .rd-sidebar { display: flex; flex-direction: column; min-height: 0; background: var(--rd-sidebar); border-right: 1px solid var(--rd-line); padding: 14px 10px 10px; }
-.rd-wordmark { font: 650 15px/1 var(--rd-display); letter-spacing: -0.02em; color: var(--rd-ink); padding: 6px 8px 18px; }
+.rd-wordmark { display: flex; align-items: center; gap: 9px; font: 650 15px/1 var(--rd-display); letter-spacing: -0.02em; color: var(--rd-ink); padding: 6px 8px 18px; }
 .rd-side-head { display: flex; align-items: center; justify-content: space-between; padding: 0 2px 4px 8px; }
 .rd-side-head h2 { font-size: 11.5px; font-weight: 600; color: var(--rd-muted); font-family: var(--font-sans); }
 .rd-side-list { overflow-y: auto; display: grid; gap: 1px; }

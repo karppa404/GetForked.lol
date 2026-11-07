@@ -4,6 +4,7 @@ import Link from "next/link";
 import { DEMO_POSTER, DEMO_VIDEO } from "@/components/landing/demo-assets";
 import { DemoVideo } from "@/components/landing/demo-video";
 import { WorkspaceShowcase } from "@/components/landing/showcase";
+import { BrandMark } from "@/components/brand-mark";
 import "./landing.css";
 
 const hasFile = (p: string) => existsSync(path.join(process.cwd(), "public", p));
@@ -30,7 +31,7 @@ export default function Home() {
       <a className="lp-skip" href="#main">Skip to content</a>
       <header className="lp-nav">
         <div className="lp-nav-inner">
-          <Link href="/" className="lp-wordmark">Retrace</Link>
+          <Link href="/" className="lp-wordmark"><BrandMark />Retrace</Link>
           <nav aria-label="Sections" className="lp-nav-links">
             <a href="#demo">Demo</a>
             <a href="#how">How it works</a>
@@ -135,7 +136,7 @@ export default function Home() {
       </main>
 
       <footer className="lp-footer">
-        <span className="lp-wordmark">Retrace</span>
+        <span className="lp-wordmark"><BrandMark />Retrace</span>
         <span className="lp-dim">Runs on this Mac. Nothing leaves it unless you upload.</span>
         <a href="#main">Back to top</a>
       </footer>
