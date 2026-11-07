@@ -7,10 +7,10 @@ struct BaseURLTests {
     @Test func acceptsLoopbackHTTPAndHTTPS() throws {
         #expect(try APIBaseURL("http://127.0.0.1:8000/").description == "http://127.0.0.1:8000")
         #expect(try APIBaseURL(" http://localhost:8000 ").description == "http://localhost:8000")
-        #expect(try APIBaseURL("https://api.example.com/retrace").endpoint("/v1/sessions").absoluteString == "https://api.example.com/retrace/v1/sessions")
+        #expect(try APIBaseURL("https://localhost:8000/retrace").endpoint("/v1/sessions").absoluteString == "https://localhost:8000/retrace/v1/sessions")
     }
     @Test func rejectsInsecureOrMalformed() {
-        for bad in ["http://10.0.0.5:8000", "ftp://x", "not a url", "https://user:pw@x.com", "https://x.com?token=1", ""] {
+        for bad in ["https://api.example.com", "http://10.0.0.5:8000", "ftp://x", "not a url", "https://user:pw@x.com", "https://x.com?token=1", ""] {
             #expect(throws: APIError.self, "\(bad)") { try APIBaseURL(bad) }
         }
     }

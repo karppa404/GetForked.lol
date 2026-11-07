@@ -35,7 +35,8 @@ final class AppModel: ObservableObject {
         self.credentialStore = credentialStore
         self.recorder = Recorder(store: store)
         let defaults = UserDefaults.standard
-        apiBaseURLString = defaults.string(forKey: Self.defaultsBaseURLKey) ?? APIBaseURL.development
+        let savedURL = defaults.string(forKey: Self.defaultsBaseURLKey) ?? APIBaseURL.development
+        apiBaseURLString = (try? APIBaseURL(savedURL))?.description ?? APIBaseURL.development
         deviceName = defaults.string(forKey: Self.defaultsDeviceNameKey) ?? (Host.current().localizedName ?? "Mac")
         recorder.onAutoStop = { [weak self] session in
             self?.didFinishRecording(session)

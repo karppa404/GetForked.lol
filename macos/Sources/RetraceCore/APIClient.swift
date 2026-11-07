@@ -60,8 +60,7 @@ public enum APIError: Error, Equatable, CustomStringConvertible {
     }
 }
 
-/// Validated, normalized API base URL. Plain HTTP is only allowed for loopback hosts so a
-/// device token is never sent unencrypted across a network.
+/// Validated API URL for the server running on this Mac.
 public struct APIBaseURL: Equatable, Sendable, CustomStringConvertible {
     public static let development = "http://127.0.0.1:8000"
     public let url: URL
@@ -77,6 +76,7 @@ public struct APIBaseURL: Equatable, Sendable, CustomStringConvertible {
             throw APIError.invalidBaseURL("must not contain credentials, query or fragment")
         }
         let loopback = Self.loopbackHosts.contains(host)
+        guard loopback else { throw APIError.invalidBaseURL("Retrace runs on this Mac only; use localhost or 127.0.0.1") }
         switch scheme {
         case "https": break
         case "http": guard loopback else { throw APIError.invalidBaseURL("plain http is only allowed for localhost; use https") }
