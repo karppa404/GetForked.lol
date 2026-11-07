@@ -55,8 +55,8 @@ export default function Home() {
 
         <section className="lp-section" id="demo" aria-labelledby="demo-title">
           <div className="lp-head">
-            <h2 id="demo-title">One recording, start to finish.</h2>
-            <p>From choosing an app to a reviewed, evidence-linked workflow.</p>
+            <h2 id="demo-title">See Retrace in action.</h2>
+            <p>A 22-second edited walkthrough: real Mail capture and local review, followed by a separate synthetic analysis example.</p>
           </div>
           <DemoVideo available={demoAvailable} />
         </section>
