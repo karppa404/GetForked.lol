@@ -1,0 +1,55 @@
+name: Build Retrace release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            web/package-lock.json
+            figjam-plugin/package-lock.json
+      - name: Test native recorder
+        run: macos/scripts/test.sh
+      - name: Test and build website
+        run: |
+          npm ci --prefix web
+          npm --prefix web test
+          npm --prefix web run typecheck
+          npm --prefix web run build
+      - name: Test and build FigJam importer
+        run: |
+          npm ci --prefix figjam-plugin
+          npm --prefix figjam-plugin run typecheck
+          npm --prefix figjam-plugin test
+          npm --prefix figjam-plugin run build
+      - name: Package Apple Silicon app and importer
+        env:
+          RETRACE_ARCH: arm64
+        run: scripts/package-release.sh
+      - name: Publish prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            release/Retrace-macOS-arm64.zip \
+            release/Retrace-FigJam-plugin.zip \
+            release/SHA256SUMS.txt \
+            --verify-tag --prerelease \
+            --title "Retrace $GITHUB_REF_NAME" \
+            --notes-file docs/RELEASE_NOTES.md
