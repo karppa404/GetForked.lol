@@ -72,6 +72,15 @@ class PairingClaim(Strict):
         return v
 
 
+class LocalConnect(Strict):
+    device_name: str = Field(min_length=1, max_length=80)
+
+    @field_validator("device_name")
+    @classmethod
+    def _clean(cls, v: str) -> str:
+        return PairingClaim._clean(v)
+
+
 class PairingApprove(Strict):
     claim_id: UUID
 
