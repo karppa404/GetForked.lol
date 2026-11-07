@@ -27,6 +27,10 @@ npm run typecheck
 npm run build
 ```
 
+## Landing page and demo video
+
+`/` is made of static server components. Its only client code is the demo player. The player shows `public/demo/poster.webp` and mounts `public/demo/retrace-demo.mp4` (`controls`, `playsInline`, `preload="none"`) only after you press **Play demo**, so the page downloads no video until then. If either file is missing at build time, the section says so instead of showing a broken player. Fonts are system fonts, and nothing loads from a remote host. React Flow loads only when a graph canvas renders.
+
 ## How the workspace connects
 
 - The page and the API must both be on loopback (`localhost`, `127.0.0.1`, `::1`). Anything else shows "Retrace runs on this Mac only". `NEXT_PUBLIC_API_BASE_URL` may only point to another loopback port.
