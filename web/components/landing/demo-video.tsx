@@ -26,7 +26,10 @@ export function DemoVideo({ available }: { available: boolean }) {
   return (
     <div className="lp-video">
       {playing ? (
-        <video ref={video} src={DEMO_VIDEO} poster={DEMO_POSTER} controls playsInline preload="none" aria-label="Retrace product demo" />
+        <video ref={video} src={DEMO_VIDEO} poster={DEMO_POSTER} controls playsInline preload="none" aria-label="Retrace product demo">
+          <track src="/demo/captions.vtt" kind="captions" srcLang="en" label="English" default />
+          Your browser does not support video playback. <a href={DEMO_VIDEO}>Download the demo</a>.
+        </video>
       ) : (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element -- static local poster, no optimizer needed */}
