@@ -14,7 +14,9 @@ public struct SessionManifest: Codable, Equatable, Sendable {
     public var id: String
     public var projectId: String?
     public var app: AppInfo
-    public var task: String
+    /// Legacy field: older local sessions stored a user-typed task. New sessions omit it;
+    /// Retrace observes selected-app activity and never asks for intent.
+    public var task: String?
     public var startedAt: String
     public var durationMs: Int
     public var interactions: [Interaction]
@@ -28,7 +30,7 @@ public struct SessionManifest: Codable, Equatable, Sendable {
         id: String,
         projectId: String? = nil,
         app: AppInfo,
-        task: String,
+        task: String? = nil,
         startedAt: String,
         durationMs: Int,
         interactions: [Interaction] = [],

@@ -28,7 +28,6 @@ struct MenuContent: View {
 
     @State private var apps: [TargetApp] = []
     @State private var selectedPID: pid_t?
-    @State private var task = ""
     @State private var axGranted = Permissions.accessibilityGranted
     @State private var screenGranted = Permissions.screenRecordingGranted
     @State private var error: String?
@@ -75,7 +74,7 @@ struct MenuContent: View {
         Group {
             switch recorder.state {
             case .idle: Label("Idle", systemImage: "circle")
-            case .recording: Label("Recording", systemImage: "record.circle.fill").foregroundStyle(.red)
+            case .recording: Label("Observing", systemImage: "record.circle.fill").foregroundStyle(.red)
             case .paused: Label("Paused", systemImage: "pause.circle").foregroundStyle(.orange)
             case .stopping: Label("Saving…", systemImage: "ellipsis.circle")
             }
@@ -93,10 +92,6 @@ struct MenuContent: View {
                 .buttonStyle(.borderless)
                 .help("Refresh running apps")
         }
-        TextField("Task you will demonstrate (e.g. \"Create an invoice\")", text: $task, axis: .vertical)
-            .lineLimit(1...3)
-            .textFieldStyle(.roundedBorder)
-
         VStack(alignment: .leading, spacing: 6) {
             permissionRow("Accessibility", granted: axGranted, why: "clicks, named keys, element roles",
                           request: Permissions.requestAccessibility, settings: Permissions.openAccessibilitySettings)
@@ -104,7 +99,7 @@ struct MenuContent: View {
                           request: Permissions.requestScreenRecording, settings: Permissions.openScreenRecordingSettings)
         }
 
-        Text("Only the chosen app's windows are captured, and only while it is frontmost. Typed text is never recorded. Everything stays on this Mac until you review it and press Upload & Analyze.")
+        Text("Start observing, then just work. Only the chosen app's windows are captured, and only while it is frontmost. Typed text is never recorded. Everything stays on this Mac until you review it and press Upload & Analyze.")
             .font(.caption)
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
@@ -112,7 +107,7 @@ struct MenuContent: View {
         Button {
             startRecording()
         } label: {
-            Label(starting ? "Starting…" : "Start Recording", systemImage: "record.circle")
+            Label(starting ? "Starting…" : "Start Observing App Activity", systemImage: "record.circle")
                 .frame(maxWidth: .infinity)
         }
         .buttonStyle(.borderedProminent)
@@ -120,12 +115,12 @@ struct MenuContent: View {
     }
 
     private var canStart: Bool {
-        selectedPID != nil && !task.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && axGranted && screenGranted && !starting
+        selectedPID != nil && axGranted && screenGranted && !starting
     }
 
     @ViewBuilder private var recordingSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Target: \(recorder.targetName ?? "—")").font(.subheadline.bold())
+            Text("Observing \(recorder.targetName ?? "—") while you work").font(.subheadline.bold())
             if let start = recorder.startedAt {
                 TimelineView(.periodic(from: .now, by: 1)) { ctx in
                     Text("Elapsed \(Self.format(ctx.date.timeIntervalSince(start)))").monospacedDigit()
@@ -192,7 +187,7 @@ struct MenuContent: View {
         Task {
             defer { starting = false }
             do {
-                try await recorder.start(app: target.app, task: task.trimmingCharacters(in: .whitespacesAndNewlines))
+                try await recorder.start(app: target.app)
             } catch {
                 self.error = error.localizedDescription
             }

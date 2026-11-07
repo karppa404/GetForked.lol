@@ -42,7 +42,6 @@ final class Recorder: ObservableObject {
 
     private var target: NSRunningApplication?
     private var targetPID: pid_t = 0
-    private var task = ""
     private var sessionId = ""
     private var clock = SessionClock()
     private var capturer: FrameCapturer?
@@ -72,7 +71,7 @@ final class Recorder: ObservableObject {
 
     // MARK: Start / stop
 
-    func start(app: NSRunningApplication, task: String) async throws {
+    func start(app: NSRunningApplication) async throws {
         guard state == .idle else { throw RecorderError.alreadyRecording }
         guard app.processIdentifier != getpid(), app.bundleIdentifier != Bundle.main.bundleIdentifier else {
             throw RecorderError.invalidTarget("Retrace cannot record itself.")
@@ -94,7 +93,6 @@ final class Recorder: ObservableObject {
         self.target = app
         self.targetPID = app.processIdentifier
         self.targetName = app.localizedName ?? app.bundleIdentifier ?? "App"
-        self.task = task
         self.sessionId = id
         self.interactions = []
         self.indexById = [:]
@@ -177,7 +175,6 @@ final class Recorder: ObservableObject {
         let manifest = SessionManifest(
             id: sessionId,
             app: AppInfo(name: targetName ?? bundleId, bundleId: bundleId, pid: targetPID),
-            task: task,
             startedAt: clock.startedAtISO8601,
             durationMs: max(duration, (sortedFrames.last?.timestampMs ?? 0), (items.last?.timestampMs ?? 0)),
             interactions: items,

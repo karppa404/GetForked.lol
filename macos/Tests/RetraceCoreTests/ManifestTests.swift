@@ -20,9 +20,10 @@ struct ManifestTests {
         var m = try loadFixture().manifest
         m.projectId = "proj-1"
         let obj = try jsonObject(try ManifestCoding.encoder().encode(m))
-        for key in ["schema_version", "id", "project_id", "app", "task", "started_at", "duration_ms", "interactions", "frames", "network", "redaction", "network_status"] {
+        for key in ["schema_version", "id", "project_id", "app", "started_at", "duration_ms", "interactions", "frames", "network", "redaction", "network_status"] {
             #expect(obj[key] != nil, "missing \(key)")
         }
+        #expect(obj["task"] == nil, "no task/reason is recorded")
         #expect(obj["network_status"] as? String == "not_captured")
         #expect((obj["app"] as? [String: Any])?["bundle_id"] as? String == "com.example.synthetic-notes")
         let first = (obj["interactions"] as! [[String: Any]])[0]
@@ -31,6 +32,13 @@ struct ManifestTests {
         #expect(first["key"] == nil, "nil optionals must be omitted")
         let frame = (obj["frames"] as! [[String: Any]])[0]
         #expect(Set(frame.keys) == ["id", "timestamp_ms", "filename", "width", "height", "sha256"])
+    }
+
+    @Test func decodesLegacyManifestWithTask() throws {
+        var obj = try jsonObject(try ManifestCoding.encoder().encode(try loadFixture().manifest))
+        obj["task"] = "Old typed task"
+        let m = try ManifestCoding.decoder().decode(SessionManifest.self, from: JSONSerialization.data(withJSONObject: obj))
+        #expect(m.task == "Old typed task")
     }
 
     @Test func roundTrips() throws {

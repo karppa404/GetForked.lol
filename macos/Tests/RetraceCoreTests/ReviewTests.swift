@@ -38,7 +38,7 @@ struct ReviewTests {
         let data = Data("synthetic".utf8)
         let frame = try store.writeFrame(sessionId: id, frameId: UUID().uuidString.lowercased(), timestampMs: 5, data: data, width: 1, height: 1)
         #expect(frame.sha256 == SessionStore.sha256Hex(data))
-        let manifest = SessionManifest(id: id, app: AppInfo(name: "X", bundleId: "x", pid: 1), task: "t",
+        let manifest = SessionManifest(id: id, app: AppInfo(name: "X", bundleId: "x", pid: 1),
                                        startedAt: "2026-11-07T15:00:00.000Z", durationMs: 10, frames: [frame])
         try store.save(manifest: manifest)
         let perms = try FileManager.default.attributesOfItem(atPath: dir.path)[.posixPermissions] as? Int

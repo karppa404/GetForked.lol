@@ -10,8 +10,8 @@ struct ReviewWindow: View {
             List(selection: $model.selectedSessionId) {
                 ForEach(model.sessions) { s in
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(s.manifest.task).lineLimit(1)
-                        Text("\(s.manifest.app.name) · \(Self.date(s.manifest.startedAt))")
+                        Text("\(s.manifest.app.name) activity").lineLimit(1)
+                        Text(Self.date(s.manifest.startedAt))
                             .font(.caption).foregroundStyle(.secondary)
                         HStack(spacing: 6) {
                             if s.upload.remoteSessionId != nil { tag("Uploaded", .blue) }
@@ -24,7 +24,7 @@ struct ReviewWindow: View {
             }
             .overlay {
                 if model.sessions.isEmpty {
-                    Text("No local sessions yet.\nRecord one from the menu bar.").multilineTextAlignment(.center).foregroundStyle(.secondary)
+                    Text("No local sessions yet.\nStart observing an app from the menu bar.").multilineTextAlignment(.center).foregroundStyle(.secondary)
                 }
             }
             .navigationSplitViewColumnWidth(min: 220, ideal: 260)
@@ -85,7 +85,7 @@ struct SessionReviewView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(manifest.task).font(.title2.bold())
+            Text("\(manifest.app.name) activity").font(.title2.bold())
             Text("\(manifest.app.name) (\(manifest.app.bundleId)) · started \(ReviewWindow.date(manifest.startedAt)) · \(MenuContent.format(Double(manifest.durationMs) / 1000))")
                 .foregroundStyle(.secondary)
             Text("\(manifest.frames.count) frames · \(manifest.interactions.count) events · session \(manifest.id)")

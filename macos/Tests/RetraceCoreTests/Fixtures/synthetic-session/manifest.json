@@ -2,7 +2,6 @@
   "schema_version": 1,
   "id": "0b6f3c1e-8d2a-4f5b-9c7d-1e2f3a4b5c6d",
   "app": { "name": "Synthetic Notes", "bundle_id": "com.example.synthetic-notes", "pid": 4242 },
-  "task": "Create a note titled Groceries and save it",
   "started_at": "2026-11-07T15:00:00.000Z",
   "duration_ms": 9000,
   "interactions": [
