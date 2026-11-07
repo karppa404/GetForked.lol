@@ -9,7 +9,7 @@ import "./landing.css";
 const hasFile = (p: string) => existsSync(path.join(process.cwd(), "public", p));
 
 const STEPS = [
-  { n: "1", title: "Observe", body: "Pick an app on your Mac and keep working. The recorder captures interactions, screenshots and, if you allow it, network requests." },
+  { n: "1", title: "Observe", body: "Pick an app on your Mac and keep working. The recorder captures interactions and screenshots. Network evidence can be imported from the separate capture helper." },
   { n: "2", title: "Review", body: "When you stop, go through the evidence and leave out anything sensitive. Nothing is uploaded until you choose to." },
   { n: "3", title: "Map", body: "Analysis builds a workflow and an API graph. Every node and edge links back to the evidence it came from." },
 ];
@@ -99,7 +99,7 @@ export default function Home() {
             <article className="lp-row lp-row--flip">
               <div className="lp-row-copy">
                 <h3>API &amp; network</h3>
-                <p>Endpoints linked to the actions that triggered them. Links inferred from timing are marked as candidates, never presented as fact.</p>
+                <p>Endpoints linked to actions observed near them. Links inferred from timing are marked as candidates, never presented as fact.</p>
               </div>
               <div className="lp-panel" aria-hidden="true">
                 <ul className="lp-reqs">

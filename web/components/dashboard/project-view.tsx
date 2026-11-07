@@ -9,9 +9,9 @@ import { EmptyState, ErrorNotice, Icon, LoadingBlock, NetworkBadge, StatusPill, 
 function RecorderSteps() {
   return (
     <ol className="rd-steps">
-      <li>Open the Retrace menu bar app and choose <b>Connect to this Mac</b>.</li>
-      <li>Select the app to observe, then work in it as you normally would.</li>
-      <li>Stop, review the captured evidence, and upload it for analysis.</li>
+      <li><span>Open the Retrace menu bar app, choose Connection, then <b>Connect to Local workspace</b>.</span></li>
+      <li><span>Select the app to observe, then work in it as you normally would.</span></li>
+      <li><span>Stop, review the captured evidence, and upload it for analysis.</span></li>
     </ol>
   );
 }
