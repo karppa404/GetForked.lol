@@ -22,7 +22,7 @@ The public Vercel site remains a sample-data preview until Google login and host
    RETRACE_LLM_PROVIDER=offline_heuristic uv run python -m retrace
    ```
 
-   `offline_heuristic` explicitly enables deterministic development analysis with zero model calls. The dashboard labels it as development analysis. To use Nemotron, omit that provider override and set `RETRACE_LLM_BASE_URL`, `RETRACE_LLM_MODEL`, `RETRACE_LLM_VISION=1`, and `RETRACE_LLM_API_KEY_FILE` pointing to a private key file (or use the key environment variable). The Brev endpoint must accept the configured credential before a live test can run.
+   `offline_heuristic` explicitly enables deterministic development analysis with zero model calls. The dashboard labels it as development analysis. To use Nemotron, omit that provider override and set `RETRACE_LLM_BASE_URL`, `RETRACE_LLM_MODEL`, and `RETRACE_LLM_API_KEY_FILE` pointing to a private key file (or use the key environment variable). The supplied Brev endpoint now authenticates and lists `nvidia/NVIDIA-Nemotron-Nano-9B-v2`: use that exact model ID and `RETRACE_LLM_VISION=0`. This model can analyze textual interaction/accessibility/network evidence; it cannot interpret screenshot pixels. Set vision to 1 only after deploying a compatible vision model.
 
 3. Start the dashboard:
 

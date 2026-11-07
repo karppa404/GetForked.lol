@@ -10,7 +10,7 @@ Download `Retrace-macOS-arm64.zip` from Releases, unzip it and move Retrace.app 
 
 For a connected recording session, start the local dashboard, FastAPI service and SpacetimeDB using the [local demo guide](docs/LOCAL_DEMO.md). Create an app project, generate a room code, connect the recorder, and approve it in the dashboard. Select an app and demonstrate a task yourself. Stop, review and omit sensitive evidence, then explicitly upload.
 
-The public dashboard currently opens a clearly labeled sample workspace. Google login and hosted analysis services are not configured. Live Nemotron analysis needs working inference credentials; the supplied Brev endpoint currently returns 401. The local development provider is explicitly labeled and makes no model calls.
+The public dashboard currently opens a clearly labeled sample workspace. Google login and hosted analysis services are not configured. The supplied Brev endpoint has authenticated successfully and serves `nvidia/NVIDIA-Nemotron-Nano-9B-v2` (text only); screenshot vision still needs a compatible vision endpoint. The local development provider is explicitly labeled and makes no model calls.
 
 ## Source
 
