@@ -30,14 +30,14 @@ export function networkPath(e: NetworkEvent): { host: string; path: string } {
   }
 }
 
-export function describeEvidence(item: EvidenceItem): { symbol: string; title: string; detail: string } {
-  if (item.kind === "frame") return { symbol: "▢", title: item.data.preview?.title ?? "Screenshot", detail: `${item.data.filename} · ${item.data.width}×${item.data.height}` };
+export function describeEvidence(item: EvidenceItem): { title: string; detail: string } {
+  if (item.kind === "frame") return { title: item.data.preview?.title ?? "Screenshot", detail: `${item.data.filename} · ${item.data.width}×${item.data.height}` };
   if (item.kind === "interaction") {
     const d = describeInteraction(item.data);
-    return { symbol: item.data.kind === "key" ? "⌨" : item.data.kind === "scroll" ? "↕" : "↖", ...d };
+    return d;
   }
   const { host, path } = networkPath(item.data);
-  return { symbol: "⇄", title: `${item.data.method} ${path}`, detail: [item.data.status ? String(item.data.status) : "no status", host].filter(Boolean).join(" · ") };
+  return { title: `${item.data.method} ${path}`, detail: [item.data.status ? String(item.data.status) : "no status", host].filter(Boolean).join(" · ") };
 }
 
 const W = 288;
@@ -136,7 +136,6 @@ export function FrameImage({ sessionId, frame }: { sessionId: string; frame: Fra
   }
   return (
     <div className="rd-frame-placeholder" style={{ aspectRatio: frame.width && frame.height ? `${frame.width} / ${frame.height}` : "16 / 10" }}>
-      <span aria-hidden="true">▢</span>
       <strong>{frame.filename}</strong>
       <span>
         {state.loading ? "Loading screenshot…" : state.error ? `Couldn’t load screenshot: ${state.error}` : "The API didn’t provide an image URL for this frame."}

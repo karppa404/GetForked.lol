@@ -4,7 +4,7 @@
 
 import { PREVIEW_PROJECTS, PREVIEW_SESSIONS, findPreviewSession } from "./demo-data";
 import { applyCorrections, workflowView } from "./graph";
-import type { Correction, Graph, Job, JobStage, Pairing, Project, SessionDetail, SessionSummary } from "./types";
+import type { Correction, Graph, Job, JobStage, Project, SessionDetail, SessionSummary } from "./types";
 import type { Workspace } from "./workspace";
 
 export const PREVIEW_STORAGE_KEY = "retrace.preview-workspace.v1";
@@ -131,13 +131,6 @@ export function publishedGraph(full: Graph, job: Job): Graph | null {
   return done("publish") ? full : { ...full, ambiguities: [] };
 }
 
-function randomCode() {
-  const alphabet = "ACDEFGHJKMNPQRTUVWXY3479";
-  const bytes = new Uint8Array(6);
-  globalThis.crypto.getRandomValues(bytes);
-  return Array.from(bytes, (b) => alphabet[b % alphabet.length]).join("");
-}
-
 const delay = (ms: number, signal?: AbortSignal) =>
   new Promise<void>((resolve, reject) => {
     const t = setTimeout(resolve, ms);
@@ -148,8 +141,6 @@ const delay = (ms: number, signal?: AbortSignal) =>
   });
 
 export function createPreviewWorkspace(store: PreviewStore, now: () => number = () => Date.now(), latencyMs = 120): Workspace {
-  const pairings = new Map<string, Pairing>();
-
   const sessionDetail = (id: string): SessionDetail => {
     const built = findPreviewSession(id);
     if (!built) throw new Error("Sample session not found");
@@ -194,7 +185,7 @@ export function createPreviewWorkspace(store: PreviewStore, now: () => number = 
       if (!all.some((p) => p.id === projectId)) throw new Error("Project not found in this preview workspace");
       return PREVIEW_SESSIONS.filter((s) => s.detail.project_id === projectId).map((s): SessionSummary => {
         const d = sessionDetail(s.detail.id);
-        return { id: d.id, project_id: d.project_id, task: d.task, app: d.app, started_at: d.started_at, duration_ms: d.duration_ms, status: d.status, network_status: d.network_status };
+        return { id: d.id, project_id: d.project_id, app: d.app, started_at: d.started_at, duration_ms: d.duration_ms, status: d.status, network_status: d.network_status };
       });
     },
     async getSession(id, signal) {
@@ -237,29 +228,6 @@ export function createPreviewWorkspace(store: PreviewStore, now: () => number = 
         else delete d.boardUrls[sessionId];
       });
       return { status: "saved", board_url: url };
-    },
-    async createPairing(_projectId, signal) {
-      await delay(latencyMs, signal);
-      const pairing: Pairing = { pairing_id: `pair-preview-${now().toString(36)}`, code: randomCode(), expires_at: new Date(now() + 10 * 60_000).toISOString(), claims: [] };
-      pairings.set(pairing.pairing_id, pairing);
-      return structuredClone(pairing);
-    },
-    async getPairing(id, signal) {
-      await delay(latencyMs / 2, signal);
-      const p = pairings.get(id);
-      if (!p) throw new Error("Pairing not found");
-      return structuredClone(p);
-    },
-    async approveClaim(pairingId, claimId, signal) {
-      await delay(latencyMs, signal);
-      const claim = pairings.get(pairingId)?.claims.find((c) => c.claim_id === claimId);
-      if (!claim) throw new Error("Claim not found");
-      claim.status = "approved";
-    },
-    simulateClaim(pairingId) {
-      const p = pairings.get(pairingId);
-      if (!p || p.claims.length) return;
-      p.claims.push({ claim_id: `claim-preview-${now().toString(36)}`, device_name: "Sample MacBook Pro (simulated)", status: "pending" });
     },
     subscribe: store.subscribe,
     reset: store.reset,

@@ -11,19 +11,17 @@ import { GraphPanel } from "./graph-panel";
 import { Inspector } from "./inspector";
 import { BoardLink, JobProgress } from "./session-parts";
 import { buildSessionModel, type Selection } from "./session-model";
-import { ErrorNotice, LoadingBlock, NetworkBadge, Spinner, StatusPill, formatDate, useDashboard } from "./ui";
+import { ErrorNotice, Icon, LoadingBlock, NetworkBadge, Spinner, StatusPill, formatDate, recordingTitle, useDashboard } from "./ui";
 
 const isRunning = (s: SessionDetail | undefined) =>
   Boolean(s && ((s.job && (s.job.status === "queued" || s.job.status === "running")) || (!s.job && (s.status === "queued" || s.status === "analyzing"))));
 
 type ExportState = { state: "idle" } | { state: "busy" } | { state: "invalid"; errors: string[] } | { state: "error"; message: string } | { state: "done"; warnings: string[] };
 
-export function SessionView({ projectId, sessionId }: { projectId: string; sessionId: string }) {
+export function SessionView({ projectId, sessionId, projectName = "Project" }: { projectId: string; sessionId: string; projectName?: string }) {
   const { workspace } = useDashboard();
   const live = useRealtimeStatus(workspace) === "live";
   const session = useResource(`session:${workspace.kind}:${sessionId}`, (signal) => workspace.getSession(sessionId, signal));
-  const projects = useResource(`projects:${workspace.kind}`, (signal) => workspace.listProjects(signal));
-  const projectName = projects.data?.find((p) => p.id === projectId)?.name ?? "Project";
   const [selection, setSelection] = useState<Selection>(null);
   const [pending, setPending] = useState<Map<string, string>>(new Map());
   const [analyzeState, setAnalyzeState] = useState<{ busy: boolean; error?: unknown; confirm?: boolean }>({ busy: false });
@@ -33,7 +31,7 @@ export function SessionView({ projectId, sessionId }: { projectId: string; sessi
   const { setData } = session;
 
   useEffect(() => {
-    if (session.data) document.title = `${session.data.task} — Retrace`;
+    if (session.data) document.title = `${recordingTitle(session.data)} · Retrace`;
   }, [session.data]);
 
   const running = isRunning(session.data);
@@ -150,16 +148,15 @@ export function SessionView({ projectId, sessionId }: { projectId: string; sessi
 
   return (
     <div className="rd-page rd-page--session">
-      <Crumbs projectId={projectId} projectName={projectName} task={s.task} />
       <header className="rd-session-head">
         <div className="rd-session-title">
-          <p className="rd-eyebrow"><span aria-hidden="true" /> SESSION · {s.app.name.toUpperCase()}</p>
-          <h1>{s.task}</h1>
+          <Crumbs projectId={projectId} projectName={projectName} />
+          <h1>{s.app.name}</h1>
           <p className="rd-session-meta">
             <StatusPill status={s.status} />
             <NetworkBadge status={s.network_status} />
             <span>{formatDate(s.started_at, true)}</span>
-            <span>{formatDuration(s.duration_ms)}</span>
+            <span className="rd-tabular">{formatDuration(s.duration_ms)}</span>
             {s.app.bundle_id && <span className="rd-mono">{s.app.bundle_id}</span>}
           </p>
         </div>
@@ -178,7 +175,7 @@ export function SessionView({ projectId, sessionId }: { projectId: string; sessi
             <button type="button" className="rd-btn rd-btn--small rd-btn--primary" onClick={analyze} disabled={analyzeState.busy}>{analyzeState.busy ? "Starting…" : "Run analysis"}</button>
           )}
           <button type="button" className="rd-btn rd-btn--small" onClick={download} disabled={!analyzed || exportState.state === "busy"} title="Validated Graph v1 JSON for the FigJam import plugin">
-            {exportState.state === "busy" ? "Validating…" : "Download graph JSON"} <span aria-hidden="true">↓</span>
+            <Icon name="download" /> {exportState.state === "busy" ? "Validating…" : "Download graph JSON"}
           </button>
           <BoardLink sessionId={s.id} boardUrl={s.board_url} onSaved={(url) => setData((d) => d && { ...d, board_url: url })} />
         </div>
@@ -212,7 +209,6 @@ function ExportFeedback({ state, onDismiss, preview }: { state: ExportState; onD
   if (state.state === "invalid") {
     return (
       <div className="rd-notice rd-notice--error" role="alert">
-        <span className="rd-notice-icon" aria-hidden="true">!</span>
         <div>
           <strong>The graph didn’t pass validation, so it wasn’t downloaded</strong>
           <ul className="rd-validation">{state.errors.slice(0, 8).map((e) => <li key={e}>{e}</li>)}</ul>
@@ -226,27 +222,22 @@ function ExportFeedback({ state, onDismiss, preview }: { state: ExportState; onD
   if (state.state === "done") {
     return (
       <div className="rd-notice rd-notice--ok" role="status">
-        <span className="rd-notice-icon" aria-hidden="true">✓</span>
         <div>
           <strong>Validated graph downloaded</strong>
           <p>{preview ? "Graph v1 JSON with your preview corrections applied, marked as sample data." : "Graph v1 JSON as returned by the API."} It passed reference checks and is ready for the FigJam import plugin.</p>
           {state.warnings.length > 0 && <ul className="rd-validation">{state.warnings.map((w) => <li key={w}>{w}</li>)}</ul>}
         </div>
-        <button type="button" className="rd-icon-btn" onClick={onDismiss} aria-label="Dismiss">×</button>
+        <button type="button" className="rd-icon-btn" onClick={onDismiss} aria-label="Dismiss"><Icon name="close" /></button>
       </div>
     );
   }
   return null;
 }
 
-function Crumbs({ projectId, projectName, task }: { projectId: string; projectName: string; task?: string }) {
+function Crumbs({ projectId, projectName }: { projectId: string; projectName: string }) {
   return (
     <nav className="rd-crumbs" aria-label="Breadcrumb">
-      <a href="#/">Projects</a>
-      <span aria-hidden="true">/</span>
-      <a href={routeHref({ name: "project", projectId })}>{projectName}</a>
-      <span aria-hidden="true">/</span>
-      <span aria-current="page">{task ?? "Session"}</span>
+      <a href={routeHref({ name: "project", projectId })}><Icon name="back" />{projectName}</a>
     </nav>
   );
 }

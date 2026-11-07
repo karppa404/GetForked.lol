@@ -5,6 +5,7 @@ import { formatTimestamp } from "@/lib/dashboard/graph";
 import type { EvidenceItem, Frame } from "@/lib/dashboard/types";
 import { FrameImage, describeEvidence } from "./evidence-media";
 import { LabelEditor } from "./label-editor";
+import { Icon } from "./ui";
 import { elementEvidence, elementLabel, typeLabel, type SessionModel, type Selection } from "./session-model";
 
 interface Props {
@@ -34,7 +35,7 @@ function Overview({ model, onSelect }: { model: SessionModel; onSelect: (s: Sele
   const open = graph?.ambiguities ?? [];
   return (
     <div className="rd-insp">
-      <p className="rd-insp-eyebrow">SESSION</p>
+      <p className="rd-insp-eyebrow">Recording</p>
       <h2 className="rd-insp-title">What was observed</h2>
       <dl className="rd-stats">
         <div><dt>Interactions</dt><dd>{session.interactions.length}</dd></div>
@@ -88,8 +89,8 @@ function ElementDetail({ id, model, onSelect, onRename, onRestore }: { id: strin
   return (
     <div className="rd-insp">
       <div className="rd-insp-top">
-        <p className="rd-insp-eyebrow">{el.kind === "node" ? typeLabel(el.node.type).toUpperCase() : "CONNECTION"}</p>
-        <button type="button" className="rd-icon-btn" onClick={() => onSelect(null)} aria-label="Close inspector">×</button>
+        <p className="rd-insp-eyebrow">{el.kind === "node" ? typeLabel(el.node.type) : "Connection"}</p>
+        <button type="button" className="rd-icon-btn" onClick={() => onSelect(null)} aria-label="Close inspector"><Icon name="close" /></button>
       </div>
       {editing ? (
         <LabelEditor initial={label} label="Label" onCancel={() => setEditing(false)} onSave={async (v) => { await onRename(id, v); setEditing(false); }} />
@@ -174,7 +175,6 @@ function EvidenceCard({ item, sessionId, onOpen }: { item: EvidenceItem; session
       {item.kind === "frame" && <span className="rd-ev-media"><FrameImage sessionId={sessionId} frame={item.data} /></span>}
       <span className="rd-ev-line">
         <span className="rd-tl-time">{formatTimestamp(item.timestamp_ms)}</span>
-        <span aria-hidden="true" className="rd-tl-symbol">{d.symbol}</span>
         <span className="rd-ev-text"><b>{d.title}</b><span>{d.detail}</span></span>
       </span>
     </button>
@@ -194,8 +194,8 @@ function EvidenceDetail({ item, model, onSelect }: { item: EvidenceItem; model: 
   return (
     <div className="rd-insp">
       <div className="rd-insp-top">
-        <p className="rd-insp-eyebrow">{item.kind === "frame" ? "SCREENSHOT" : item.kind === "interaction" ? "INTERACTION" : "NETWORK REQUEST"} · {formatTimestamp(item.timestamp_ms)}</p>
-        <button type="button" className="rd-icon-btn" onClick={() => onSelect(null)} aria-label="Close inspector">×</button>
+        <p className="rd-insp-eyebrow">{item.kind === "frame" ? "Screenshot" : item.kind === "interaction" ? "Interaction" : "Network request"} · {formatTimestamp(item.timestamp_ms)}</p>
+        <button type="button" className="rd-icon-btn" onClick={() => onSelect(null)} aria-label="Close inspector"><Icon name="close" /></button>
       </div>
       <h2 className="rd-insp-title rd-insp-title--evidence">{d.title}</h2>
       <p className="rd-muted">{d.detail}</p>

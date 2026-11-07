@@ -52,33 +52,33 @@ export function GraphPanel({ model, selection, onSelect, onRename, analysisRunni
   let body: React.ReactNode;
   if (!graph || !view) {
     body = analysisRunning ? (
-      <EmptyState symbol="⌁" title="Mapping the workflow…"><p>The graph appears here as analysis stages publish. You can review evidence in the meantime.</p></EmptyState>
+      <EmptyState title="Mapping the workflow…"><p>The graph appears here as analysis stages publish. You can review evidence in the meantime.</p></EmptyState>
     ) : (
-      <EmptyState symbol="⌁" title="Not analyzed yet" action={<button type="button" className="rd-btn rd-btn--primary" onClick={onAnalyze}>Run analysis</button>}>
-        <p>Analysis turns this session’s screenshots, interactions{session.network_status === "observed" ? " and requests" : ""} into an evidence-backed graph.</p>
+      <EmptyState title="Not analyzed yet" action={<button type="button" className="rd-btn rd-btn--primary" onClick={onAnalyze}>Run analysis</button>}>
+        <p>Analysis turns this recording’s screenshots, interactions{session.network_status === "observed" ? " and requests" : ""} into an evidence-backed graph.</p>
       </EmptyState>
     );
   } else if (tab === "network" && session.network_status === "not_captured") {
     body = (
-      <EmptyState symbol="⊘" title="Network not captured">
-        <p>This session was recorded without network capture, so Retrace can’t show which APIs the workflow depends on. The workflow is still grounded in screenshots and interactions.</p>
-        <p className="rd-fine">To map APIs, record the task again with network capture enabled in the recorder.</p>
+      <EmptyState title="Network not captured">
+        <p>This recording was made without network capture, so Retrace can’t show which APIs the workflow depends on. The workflow is still grounded in screenshots and interactions.</p>
+        <p className="rd-fine">To map APIs, record again with network capture enabled in the recorder.</p>
       </EmptyState>
     );
   } else if (tab === "network" && session.network_status === "none_observed") {
     body = (
-      <EmptyState symbol="∅" title="No network activity observed">
-        <p>Network capture was on, but the app made no requests during this task. It may work from local data, a cache, or sync later in the background.</p>
+      <EmptyState title="No network activity observed">
+        <p>Network capture was on, but the app made no requests during this recording. It may work from local data, a cache, or sync later in the background.</p>
       </EmptyState>
     );
   } else if (tab === "network" && view.nodes.length === 0) {
     body = analysisRunning && !networkStageDone ? (
-      <EmptyState symbol="⇄" title="Tracing network…"><p>API dependencies appear once the network stage publishes.</p></EmptyState>
+      <EmptyState title="Tracing network…"><p>API dependencies appear once the network stage publishes.</p></EmptyState>
     ) : (
-      <EmptyState symbol="⇄" title="No API dependencies in the graph"><p>Requests were captured, but none were linked to workflow steps.</p></EmptyState>
+      <EmptyState title="No API dependencies in the graph"><p>Requests were captured, but none were linked to workflow steps.</p></EmptyState>
     );
   } else if (view.nodes.length === 0) {
-    body = <EmptyState symbol="⌁" title="Empty workflow"><p>The published graph has no workflow steps.</p></EmptyState>;
+    body = <EmptyState title="Empty workflow"><p>The published graph has no workflow steps.</p></EmptyState>;
   } else if (mode === "canvas") {
     body = (
       <GraphCanvas

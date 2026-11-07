@@ -59,11 +59,11 @@ export function EvidenceTimeline({ model, selection, onSelect }: { model: Sessio
       {filter === "network" && networkLabel ? (
         <p className="rd-timeline-note">
           {session.network_status === "not_captured"
-            ? "Network capture was off for this session, so there are no requests to show."
-            : "Network capture was on, but no requests were made during this task."}
+            ? "Network capture was off for this recording, so there are no requests to show."
+            : "Network capture was on, but no requests were made during this recording."}
         </p>
       ) : visible.length === 0 ? (
-        <p className="rd-timeline-note">No evidence of this kind in the session.</p>
+        <p className="rd-timeline-note">No evidence of this kind in this recording.</p>
       ) : (
         <ol ref={listRef} className="rd-timeline-list">
           {visible.map((item) => (
@@ -88,7 +88,6 @@ function TimelineItem({ item, highlighted, selected, citedBy, onSelect }: { item
     <li data-highlighted={highlighted}>
       <button type="button" className={`rd-tl-item rd-tl-item--${item.kind}${highlighted ? " is-highlighted" : ""}`} aria-pressed={selected} onClick={onSelect}>
         <span className="rd-tl-time">{formatTimestamp(item.timestamp_ms)}</span>
-        <span className="rd-tl-symbol" aria-hidden="true">{d.symbol}</span>
         <span className="rd-tl-text">
           <span className="rd-tl-title">{d.title}</span>
           <span className="rd-tl-detail">{d.detail}</span>

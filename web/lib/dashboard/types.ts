@@ -63,7 +63,6 @@ export interface AppInfo {
 export interface SessionSummary {
   id: string;
   project_id: string;
-  task: string;
   app: AppInfo;
   started_at: string;
   duration_ms: number;
@@ -141,19 +140,6 @@ export interface SessionDetail extends SessionSummary {
   graph: Graph | null;
   corrections: Correction[];
   board_url: string | null;
-}
-
-export interface PairingClaim {
-  claim_id: string;
-  device_name: string;
-  status: "pending" | "approved" | (string & {});
-}
-
-export interface Pairing {
-  pairing_id: string;
-  code: string;
-  expires_at: string;
-  claims: PairingClaim[];
 }
 
 export type EvidenceItem =

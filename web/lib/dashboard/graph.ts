@@ -163,7 +163,7 @@ export function networkView(graph: Graph): GraphView {
 
 /**
  * Deterministic layered layout (longest-path ranking, cycles broken by input order).
- * Good enough for demonstrated single-task workflows; no layout dependency needed.
+ * Good enough for single-recording workflows; no layout dependency needed.
  */
 export function layeredLayout(
   nodes: Pick<GraphNode, "id">[],
@@ -242,7 +242,7 @@ export function formatDuration(ms: number): string {
   return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, "0")}s`;
 }
 
-export function exportFilename(session: Pick<SessionDetail, "id" | "task">): string {
-  const slug = session.task.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48) || "session";
+export function exportFilename(session: Pick<SessionDetail, "id" | "app">): string {
+  const slug = session.app.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48) || "session";
   return `retrace-${slug}-${session.id.slice(0, 8)}.graph.json`;
 }

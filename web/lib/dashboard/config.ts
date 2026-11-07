@@ -1,16 +1,13 @@
 // Public, non-secret configuration only. NEXT_PUBLIC_* values are inlined at build time, so
-// nothing here may ever be a credential. Access tokens live in memory/sessionStorage (see auth.ts).
+// nothing here may ever be a credential. Access tokens live only in memory (see dashboard-app.tsx).
 
 export const DEFAULT_DEV_API_BASE_URL = "http://127.0.0.1:8000";
 
 export interface DashboardEnvironment {
-  /** API base URL, or null when this deployment has no backend configured. */
+  /** Loopback API base URL, or null when Retrace can't run here (it is localhost-only). */
   apiBaseUrl: string | null;
-  googleClientId: string | null;
-  /** POST /v1/auth/dev is offered only when both the page and the API are on loopback. */
-  devAuthAvailable: boolean;
-  /** True when at least one real sign-in method can be offered. */
-  canSignIn: boolean;
+  /** Why apiBaseUrl is null. */
+  problem: "page_not_local" | "api_not_local" | null;
 }
 
 export function isLoopbackHost(hostname: string): boolean {
@@ -26,25 +23,13 @@ function hostOf(url: string): string | null {
   }
 }
 
-export function resolveEnvironment(
-  pageHostname: string,
-  env: { apiBaseUrl?: string; googleClientId?: string } = {
-    apiBaseUrl: process.env.NEXT_PUBLIC_API_BASE_URL,
-    googleClientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
-  },
-): DashboardEnvironment {
-  const pageIsLoopback = isLoopbackHost(pageHostname);
-  const configured = env.apiBaseUrl?.trim();
-  const apiBaseUrl = (configured || (pageIsLoopback ? DEFAULT_DEV_API_BASE_URL : "")).replace(/\/+$/, "") || null;
-  const apiHost = apiBaseUrl ? hostOf(apiBaseUrl) : null;
-  const googleClientId = env.googleClientId?.trim() || null;
-  const devAuthAvailable = Boolean(apiBaseUrl && pageIsLoopback && apiHost && isLoopbackHost(apiHost));
-  return {
-    apiBaseUrl,
-    googleClientId,
-    devAuthAvailable,
-    canSignIn: Boolean(apiBaseUrl && (googleClientId || devAuthAvailable)),
-  };
+/** Retrace is localhost-only: both this page and the API must be on loopback. */
+export function resolveEnvironment(pageHostname: string, configured: string | undefined = process.env.NEXT_PUBLIC_API_BASE_URL): DashboardEnvironment {
+  if (!isLoopbackHost(pageHostname)) return { apiBaseUrl: null, problem: "page_not_local" };
+  const apiBaseUrl = (configured?.trim() || DEFAULT_DEV_API_BASE_URL).replace(/\/+$/, "");
+  const apiHost = hostOf(apiBaseUrl);
+  if (!apiHost || !isLoopbackHost(apiHost)) return { apiBaseUrl: null, problem: "api_not_local" };
+  return { apiBaseUrl, problem: null };
 }
 
 /** Bounded polling budgets, documented in web/README.md. */
@@ -53,6 +38,5 @@ export const POLL = {
   jobMaxAttempts: 144, // ~6 minutes of visible-page polling per analysis view
   reviewIntervalMs: 5000,
   reviewMaxAttempts: 144, // ~12 minutes per completed-session view; user can explicitly resume
-  pairingIntervalMs: 3000,
   requestTimeoutMs: 15000,
 } as const;

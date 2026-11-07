@@ -1,6 +1,6 @@
 import { normalizeGraph, normalizeNetworkStatus } from "./graph";
 import { ApiError, type ApiClient } from "./http";
-import type { AuthSession, Correction, Job, JobStage, Pairing, PairingClaim, Project, SessionDetail, SessionSummary } from "./types";
+import type { AuthSession, Correction, Job, JobStage, Project, SessionDetail, SessionSummary } from "./types";
 import type { Workspace } from "./workspace";
 import { createRealtime } from "./realtime";
 
@@ -30,7 +30,6 @@ export function normalizeSummary(raw: unknown): SessionSummary {
   return {
     id: s(o.id),
     project_id: s(o.project_id),
-    task: s(o.task, "Untitled task"),
     app: { name: s(app.name, "Unknown app"), bundle_id: s(app.bundle_id) || undefined },
     started_at: s(o.started_at),
     duration_ms: n(o.duration_ms),
@@ -95,27 +94,12 @@ export function normalizeSessionDetail(raw: unknown): SessionDetail {
   };
 }
 
-export function normalizePairing(raw: unknown, fallback?: Partial<Pairing>): Pairing {
-  const o = obj(raw);
-  const claims: PairingClaim[] = arr(o.claims ?? o.pending_claims).map(obj).map((c) => ({ claim_id: s(c.claim_id ?? c.id), device_name: s(c.device_name, "Unnamed device"), status: s(c.status, "pending") }));
-  return {
-    pairing_id: s(o.pairing_id ?? o.id, fallback?.pairing_id ?? ""),
-    code: s(o.code, fallback?.code ?? ""),
-    expires_at: s(o.expires_at, fallback?.expires_at ?? ""),
-    claims,
-  };
-}
-
 export function normalizeAuth(raw: unknown): AuthSession {
   const o = obj(raw);
   const token = s(o.access_token);
   if (!token) throw new ApiError("parse", "Sign-in response did not include an access token");
   const u = obj(o.user);
   return { access_token: token, user: { id: s(u.id) || undefined, email: s(u.email) || undefined, name: s(u.name) || undefined, picture: s(u.picture) || undefined } };
-}
-
-export function signInWithGoogle(client: ApiClient, credential: string, signal?: AbortSignal) {
-  return client.post<unknown>("/v1/auth/google", { credential }, { anonymous: true, signal }).then(normalizeAuth);
 }
 
 export function signInForDevelopment(client: ApiClient, signal?: AbortSignal) {
@@ -166,15 +150,6 @@ export function createBackendWorkspace(client: ApiClient): Workspace {
         if (error instanceof ApiError && (error.status === 404 || error.status === 405 || error.status === 501)) return { status: "unsupported" };
         throw error;
       }
-    },
-    async createPairing(projectId, signal) {
-      return normalizePairing(await client.post("/v1/pairings", { project_id: projectId }, { signal }));
-    },
-    async getPairing(id, signal) {
-      return normalizePairing(await client.get(`/v1/pairings/${path(id)}`, { signal }), { pairing_id: id });
-    },
-    async approveClaim(pairingId, claimId, signal) {
-      await client.post(`/v1/pairings/${path(pairingId)}/approve`, { claim_id: claimId }, { signal });
     },
     async frameImage(_sessionId, imageUrl, signal) {
       const isAbsolute = /^https?:\/\//.test(imageUrl);
