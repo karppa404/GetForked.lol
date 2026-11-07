@@ -13,6 +13,13 @@ struct CapturePolicyTests {
         #expect(!CapturePolicy.canRetainFrame(sessionId: "A", activeSessionId: "A", sessionIsActive: true, cancelled: true))
     }
 
+    @Test func ambientOutputEvidenceIsBounded() {
+        #expect(CapturePolicy.shouldRetainAmbientFrame(lastUptime: nil, currentUptime: 100))
+        #expect(!CapturePolicy.shouldRetainAmbientFrame(lastUptime: 100, currentUptime: 114.99))
+        #expect(CapturePolicy.shouldRetainAmbientFrame(lastUptime: 100, currentUptime: 115))
+        #expect(!CapturePolicy.shouldRetainAmbientFrame(lastUptime: 100, currentUptime: 99))
+    }
+
     @Test func acceptsOnlyTargetWhileFrontmostAndRecording() {
         #expect(CapturePolicy.evaluate(recording: true, targetPID: target, frontmostPID: target, ownerPID: target, kind: .pointer) == .accept)
         #expect(CapturePolicy.evaluate(recording: true, targetPID: target, frontmostPID: target, ownerPID: target, kind: .key) == .accept)
