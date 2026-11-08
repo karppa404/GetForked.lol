@@ -35,6 +35,8 @@
   overflow-x: clip;
 }
 body:has(.lp) { background: #07080a; }
+@media (prefers-reduced-motion: no-preference) { html:has(.lp) { scroll-behavior: smooth; } }
+.lp section[id] { scroll-margin-top: 100px; }
 
 .lp ::selection { background: var(--lp-accent-soft); color: var(--lp-ink); }
 .lp :focus-visible { outline: 2px solid var(--lp-accent); outline-offset: 3px; border-radius: var(--r-sm); }
@@ -52,6 +54,9 @@ body:has(.lp) { background: #07080a; }
 .lp-wordmark { display: inline-flex; align-items: center; gap: var(--s-2); font: 600 var(--t-md)/1 var(--font-display); letter-spacing: -0.01em; color: var(--lp-ink); }
 .lp-nav-links { display: flex; gap: var(--s-2); margin: 0 auto; }
 .lp-nav-links a { padding: var(--s-3) var(--s-2); border-radius: var(--r-sm); font-size: var(--t-sm); font-weight: 500; letter-spacing: 0.2px; color: var(--lp-dim); transition: color var(--dur) ease; }
+.lp-nav-actions { display: flex; align-items: center; gap: var(--s-2); }
+.lp-github { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 8px; background: #e6e6e6; color: #24292f; transition: background-color var(--dur) ease; }
+.lp-github svg { width: 21px; height: 21px; }
 
 /* buttons & links */
 .lp-btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--s-2); height: 36px; padding: 0 var(--s-3); border-radius: 8px; font-size: var(--t-sm); font-weight: 500; letter-spacing: 0.2px; white-space: nowrap; transition: background-color var(--dur) ease, transform var(--dur) var(--ease-out); }
@@ -59,7 +64,7 @@ body:has(.lp) { background: #07080a; }
 .lp-btn--light { background: #e6e6e6; color: #2f3031; box-shadow: 0 0 0 2px rgb(0 0 0 / 0.5), 0 0 14px rgb(255 255 255 / 0.19), inset 0 -1px 0.4px rgb(0 0 0 / 0.2), inset 0 1px 0.4px #fff; }
 @media (hover: hover) and (pointer: fine) {
   .lp-nav-links a:hover, .lp-footer a:hover, .lp-mono a:hover { color: var(--lp-ink); }
-  .lp-btn--light:hover { background: #fff; }
+  .lp-btn--light:hover, .lp-github:hover { background: #fff; }
 }
 
 /* hero: diagonal coral streaks behind centred copy */
@@ -84,8 +89,7 @@ body:has(.lp) { background: #07080a; }
 .lp-cta .lp-meta { max-width: none; font-size: var(--t-sm); }
 .lp-scan figcaption { margin-top: var(--s-3); font-size: var(--t-sm); color: var(--lp-dim); }
 
-/* hero scan: the legacy app's own window chrome is the edge; a red line sweeps it top to bottom.
-   Beam and marks share one duration and keyframe stops, so the marks stay inside the beam's trail. */
+/* The scan reveals marks as it passes, then fades them before the next sweep. */
 .lp {
   --scan-red: 255 52 52;
   --scan-dur: 5.6s;
@@ -109,14 +113,14 @@ body:has(.lp) { background: #07080a; }
   90%, 100% { transform: translateY(0); opacity: 0; }
 }
 @keyframes lp-marks {
-  0% { clip-path: inset(calc(0% - var(--scan-trail)) 0 100% 0); opacity: 1; }
-  80% { clip-path: inset(calc(100% - var(--scan-trail)) 0 0 0); opacity: 1; }
-  90%, 100% { clip-path: inset(calc(100% - var(--scan-trail)) 0 0 0); opacity: 0; }
+  0% { clip-path: inset(0 0 100% 0); opacity: 1; }
+  80% { clip-path: inset(0 0 0 0); opacity: 1; }
+  90%, 100% { clip-path: inset(0 0 0 0); opacity: 0; }
 }
 @keyframes lp-blink { 50% { opacity: 0.25; } }
 @media (prefers-reduced-motion: reduce) {
   .lp-scan-beam { animation: none; transform: translateY(-38%); }
-  .lp-scan-marks { animation: none; clip-path: inset(calc(62% - var(--scan-trail)) 0 38% 0); }
+  .lp-scan-marks { animation: none; clip-path: inset(0 0 38% 0); }
   .lp-scan-chip i { animation: none; }
 }
 

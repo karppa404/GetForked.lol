@@ -29,7 +29,7 @@ const BREAKDOWN = [
   { title: "Pages", count: "3 pages", rows: [["Home", "category index"], ["Category", "Fastening & Joining"], ["Search", "results grid"]] },
   { title: "Endpoints", count: "3 endpoints", kind: "mono", rows: CALLS.map((p) => ["GET", p]) },
   { title: "Stack evidence", count: "2 signals", rows: [["Response headers", "advertised, not verified"], ["Page markup", "rendering hints"]] },
-  { title: "Alternatives", count: "2 proposed", rows: [["Next.js + React", "server-rendered catalog"], ["SvelteKit", "lighter client bundle"]] },
+  { title: "Alternatives", count: "2 proposed", rows: [["Next.js", "server-rendered catalog"], ["SvelteKit", "lighter client bundle"]] },
   { title: "Performance goals", count: "3 proposed", kind: "inline", rows: [["LCP", "≤ 2.5 s"], ["INP", "≤ 200 ms"], ["Search", "≤ 300 ms p95"]] },
 ] as const;
 
