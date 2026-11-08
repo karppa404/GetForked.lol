@@ -1,0 +1,86 @@
+/* Spec sheet section. Uses the .lp tokens from app/landing.css; only syntax colours are new. */
+.ss {
+  --ss-key: #e4e4e7;
+  --ss-str: #a9d8b8;     /* 12.4:1 on #07080a */
+  --ss-num: #8ab4f8;     /* 9.0:1 */
+  --ss-flag: var(--lp-accent-text);
+  --ss-code-bg: #0a0b0d;
+}
+.ss-h2.lp-h2 { margin-bottom: var(--s-4); max-width: 18ch; }
+.ss-lede { max-width: 620px; margin: 0 auto var(--s-8); text-align: center; color: var(--lp-text); font-size: var(--t-md); }
+.ss-lede code { color: var(--lp-ink); }
+
+/* panel: one raised surface, inner rows split by hairlines */
+.ss-panel { border-radius: var(--r-lg); border: 1px solid var(--lp-line); background: linear-gradient(180deg, #121316, #0d0e10 40%); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 30px 80px -40px rgb(0 0 0 / 0.8); overflow: hidden; }
+
+.ss-bar { display: flex; align-items: center; gap: var(--s-4); padding: var(--s-3) var(--s-3) var(--s-3) var(--s-5); border-bottom: 1px solid var(--lp-line); }
+.ss-root { display: flex; align-items: center; gap: var(--s-2); min-width: 0; margin-right: auto; color: var(--lp-dim); }
+.ss-root svg { flex: none; }
+.ss-root-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 500 var(--t-sm)/1.4 var(--font-mono); color: var(--lp-ink); }
+.ss-badge { flex: none; padding: 2px var(--s-2); border-radius: var(--r-pill); background: var(--lp-accent-soft); color: var(--lp-accent-text); font-size: var(--t-xs); font-weight: 600; letter-spacing: 0.2px; }
+.ss-actions { display: flex; align-items: center; gap: var(--s-2); flex: none; }
+.ss-btn { display: inline-flex; align-items: center; gap: var(--s-2); height: 36px; padding: 0 var(--s-3); border-radius: 8px; border: 1px solid var(--lp-line-2); background: transparent; color: var(--lp-text); font-size: var(--t-sm); font-weight: 500; letter-spacing: 0.2px; white-space: nowrap; transition: color var(--dur) ease, background-color var(--dur) ease, transform var(--dur) var(--ease-out); }
+.ss-btn:active { transform: scale(0.97); }
+.ss-copy { border: 0; min-width: 132px; }
+.ss-copy[data-state="copied"] svg { color: #1f8a4c; animation: ss-pop 220ms var(--ease-out); }
+.ss-copy[data-state="failed"] { background: #f2d4cc; }
+@keyframes ss-pop { from { transform: scale(0.6); opacity: 0; } }
+@media (hover: hover) and (pointer: fine) {
+  .ss-btn:hover { color: var(--lp-ink); background: rgb(255 255 255 / 0.05); }
+  .ss-tab:hover:not([aria-selected="true"]) { background: rgb(255 255 255 / 0.03); color: var(--lp-ink); }
+}
+
+.ss-body { display: grid; grid-template-columns: 224px minmax(0, 1fr); }
+.ss-tabs { display: flex; flex-direction: column; gap: 2px; padding: var(--s-3); border-right: 1px solid var(--lp-line); }
+.ss-tab { display: grid; gap: 2px; padding: var(--s-2) var(--s-3); border: 0; border-radius: var(--r-sm); background: transparent; text-align: left; color: var(--lp-text); transition: background-color var(--dur) ease, color var(--dur) ease; }
+.ss-tab-label { font-size: var(--t-sm); font-weight: 500; }
+.ss-tab-file { font: 400 var(--t-xs)/1.4 var(--font-mono); color: var(--lp-dim); }
+.ss-tab[aria-selected="true"] { background: rgb(255 255 255 / 0.07); color: var(--lp-ink); box-shadow: inset 2px 0 0 var(--lp-accent); }
+.ss .ss-tab:focus-visible, .ss .ss-code:focus-visible { outline-offset: -2px; }
+
+.ss-view { min-width: 0; display: flex; flex-direction: column; background: var(--ss-code-bg); }
+.ss-view-head { display: flex; align-items: baseline; gap: var(--s-3); padding: var(--s-4) var(--s-5) 0; }
+.ss-path { min-width: 0; overflow-wrap: anywhere; color: var(--lp-ink); font-size: var(--t-sm); }
+.ss-path span { color: var(--lp-dim); }
+.ss-lines { flex: none; margin-left: auto; font: 400 var(--t-xs)/1 var(--font-mono); color: var(--lp-dim); font-variant-numeric: tabular-nums; }
+.ss-note { padding: var(--s-1) var(--s-5) var(--s-4); border-bottom: 1px solid var(--lp-line); font-size: var(--t-sm); color: var(--lp-dim); }
+
+.ss-code { height: 520px; overflow: auto; overscroll-behavior: contain; padding: var(--s-4) var(--s-5) var(--s-6); font: 400 12.5px/1.7 var(--font-mono); color: var(--lp-text); tab-size: 2; white-space: pre-wrap; overflow-wrap: anywhere; scrollbar-width: thin; scrollbar-color: rgb(255 255 255 / 0.18) transparent; }
+.ss-line { display: block; }
+.ss-code code { font-size: inherit; }
+.ss-t-h { color: var(--lp-ink); font-weight: 600; }
+.ss-t-b { color: var(--lp-ink); font-weight: 600; }
+.ss-t-code, .ss-t-str { color: var(--ss-str); }
+.ss-t-key { color: var(--ss-key); }
+.ss-t-num, .ss-t-lit { color: var(--ss-num); }
+.ss-t-link { color: var(--lp-dim); }
+.ss-t-flag { color: var(--ss-flag); }
+
+.ss-foot { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-5); padding: var(--s-3) var(--s-5); border-top: 1px solid var(--lp-line); font-size: var(--t-xs); color: var(--lp-dim); }
+.ss-foot > span:first-child { color: var(--lp-text); font-weight: 500; }
+.ss-foot code { color: var(--lp-text); }
+
+/* caveats: spacing only, like the privacy grid */
+.ss-notes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s-6); margin-top: var(--s-7); }
+.ss-notes h3 { font-size: var(--t-sm); font-weight: 600; }
+.ss-notes p { margin-top: var(--s-2); font-size: var(--t-sm); line-height: 1.6; color: var(--lp-dim); }
+
+@media (max-width: 1000px) {
+  .ss-notes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 720px) {
+  .ss-lede { margin-bottom: var(--s-7); }
+  .ss-bar { flex-wrap: wrap; gap: var(--s-3); padding: var(--s-3); }
+  .ss-root { flex: 1 1 100%; }
+  .ss-actions { flex: 1 1 100%; }
+  .ss-actions > button { flex: 1; }
+  .ss-body { grid-template-columns: 1fr; }
+  .ss-tabs { flex-direction: row; gap: var(--s-1); padding: var(--s-2); border-right: 0; border-bottom: 1px solid var(--lp-line); overflow-x: auto; scrollbar-width: none; -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent); mask-image: linear-gradient(90deg, #000 85%, transparent); }
+  .ss-tab { flex: none; padding: var(--s-2) var(--s-3); }
+  .ss-tab-file { display: none; }
+  .ss-tab[aria-selected="true"] { box-shadow: inset 0 -2px 0 var(--lp-accent); }
+  .ss-view-head, .ss-note { padding-inline: var(--s-4); }
+  .ss-code { height: 440px; padding: var(--s-3) var(--s-4) var(--s-5); font-size: 12px; }
+  .ss-foot { flex-direction: column; gap: var(--s-1); padding-inline: var(--s-4); }
+  .ss-notes { grid-template-columns: 1fr; gap: var(--s-5); }
+}

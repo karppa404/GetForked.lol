@@ -1,6 +1,9 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+const { track } = vi.hoisted(() => ({ track: vi.fn() }));
+vi.mock("@vercel/analytics", () => ({ track }));
 import { DemoVideo } from "../demo-video";
 
 afterEach(cleanup);
@@ -12,6 +15,7 @@ describe("demo video", () => {
     expect(container.querySelector("video")).toBeNull();
     expect(container.querySelector("img")?.getAttribute("src")).toBe("/demo/poster.webp");
     fireEvent.click(screen.getByRole("button", { name: "Play demo" }));
+    expect(track).toHaveBeenCalledWith("Play Demo");
     const video = container.querySelector("video")!;
     expect(video.getAttribute("src")).toBe("/demo/retrace-demo.mp4");
     expect(video.getAttribute("preload")).toBe("none");

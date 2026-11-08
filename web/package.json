@@ -10,11 +10,11 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@xyflow/react": "^12.12.1",
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.1.0",
     "next": "16.4.5",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1",
-    "spacetimedb": "2.14.1"
+    "react-dom": "^19.3.1"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.2",

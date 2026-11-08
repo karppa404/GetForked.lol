@@ -1,0 +1,234 @@
+<!doctype html>
+<!-- Ledgerline Inventory 3.1: an invented legacy desktop app, drawn in HTML and rendered to /public/ledgerline/before.webp by render.cjs.
+     Elements with data-scan become the scanner's highlight boxes on the landing page. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  :root { --face: #d4d0c8; --hi: #ffffff; --lite: #e8e6e0; --shadow: #808080; --dark: #404040; --navy: #0a246a; --sel: #0a246a; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1200px; height: 760px; overflow: hidden; background: transparent; }
+  body { font: 11px/1.2 Tahoma, Verdana, sans-serif; color: #000; }
+  .win { position: absolute; inset: 0; background: var(--face); border: 1px solid; border-color: var(--lite) var(--dark) var(--dark) var(--lite); box-shadow: inset 1px 1px var(--hi), inset -1px -1px var(--shadow); padding: 4px; display: flex; flex-direction: column; }
+  .raised { border: 1px solid; border-color: var(--hi) var(--dark) var(--dark) var(--hi); box-shadow: inset -1px -1px var(--shadow); background: var(--face); }
+  .sunken { border: 1px solid; border-color: var(--shadow) var(--hi) var(--hi) var(--shadow); box-shadow: inset 1px 1px var(--dark); background: #fff; }
+  .thin-sunken { border: 1px solid; border-color: var(--shadow) var(--hi) var(--hi) var(--shadow); }
+
+  .title { height: 22px; display: flex; align-items: center; gap: 5px; padding: 0 3px 0 4px; color: #fff; font-weight: bold; background: linear-gradient(90deg, #0a246a, #3a6ea5 55%, #a6caf0); }
+  .title.small { height: 19px; font-size: 11px; }
+  .title .ico { width: 16px; height: 16px; }
+  .title span { flex: 1; letter-spacing: .1px; }
+  .caps { display: flex; gap: 2px; }
+  .caps b { width: 16px; height: 14px; display: grid; place-items: center; color: #000; font: bold 9px/1 Tahoma; }
+  .caps b + b + b { margin-left: 2px; }
+
+  .menu { display: flex; height: 20px; align-items: center; padding: 0 2px; margin-top: 1px; }
+  .menu span { padding: 2px 7px; }
+  .menu span:first-letter { text-decoration: underline; }
+
+  .bar { display: flex; align-items: stretch; gap: 1px; padding: 2px 3px; border-top: 1px solid var(--shadow); box-shadow: inset 0 1px var(--hi); margin-top: 1px; }
+  .grip { width: 3px; margin: 2px 4px 2px 0; border: 1px solid; border-color: var(--hi) var(--shadow) var(--shadow) var(--hi); }
+  .tb { width: 54px; height: 44px; display: grid; justify-items: center; align-content: center; gap: 3px; }
+  .tb.on { border: 1px solid; border-color: var(--hi) var(--shadow) var(--shadow) var(--hi); }
+  .tb svg { width: 20px; height: 20px; }
+  .sep { width: 2px; margin: 4px 4px; border-left: 1px solid var(--shadow); border-right: 1px solid var(--hi); }
+
+  .body { flex: 1; display: flex; gap: 4px; margin-top: 3px; min-height: 0; }
+  .nav { width: 214px; display: flex; flex-direction: column; }
+  .pane-h { height: 19px; display: flex; align-items: center; padding: 0 4px; font-weight: bold; border: 1px solid; border-color: var(--hi) var(--shadow) var(--shadow) var(--hi); margin-bottom: 2px; }
+  .tree { flex: 1; padding: 3px 2px; line-height: 17px; overflow: hidden; }
+  .tree div { display: flex; align-items: center; gap: 3px; white-space: nowrap; }
+  .tree .pm { width: 9px; height: 9px; border: 1px solid var(--shadow); font: 9px/7px Tahoma; text-align: center; color: #000; background: #fff; flex: none; }
+  .tree .sp { width: 9px; flex: none; }
+  .tree svg { width: 16px; height: 16px; flex: none; }
+  .tree .hl { background: var(--sel); color: #fff; padding: 0 2px; outline: 1px dotted #ffff00; }
+
+  .mdi { flex: 1; background: #808080; padding: 6px; position: relative; }
+  .child { position: absolute; inset: 6px; display: flex; flex-direction: column; padding: 3px; border: 1px solid; border-color: var(--lite) var(--dark) var(--dark) var(--lite); box-shadow: inset 1px 1px var(--hi), inset -1px -1px var(--shadow); background: var(--face); }
+
+  .filters { display: flex; align-items: center; gap: 6px; padding: 7px 4px 6px; }
+  .field { height: 20px; display: flex; align-items: center; padding: 0 4px; background: #fff; }
+  .combo { height: 20px; display: flex; align-items: center; background: #fff; padding-left: 4px; }
+  .combo i { margin-left: auto; width: 16px; height: 16px; display: grid; place-items: center; font-style: normal; font-size: 8px; }
+  .btn { height: 23px; min-width: 75px; padding: 0 10px; display: grid; place-items: center; }
+  .btn.def { outline: 1px solid #000; outline-offset: 0; }
+  .chk { display: flex; align-items: center; gap: 4px; }
+  .chk b { width: 13px; height: 13px; background: #fff; display: grid; place-items: center; font: bold 10px/1 Tahoma; }
+
+  .grid { flex: 1; min-height: 0; overflow: hidden; position: relative; }
+  .child > :not(.grid), .win > :not(.body) { flex: none; }
+  table { border-collapse: collapse; width: 100%; table-layout: fixed; }
+  th { height: 19px; text-align: left; font-weight: normal; padding: 0 5px; background: var(--face); border: 1px solid; border-color: var(--hi) var(--shadow) var(--shadow) var(--hi); box-shadow: inset -1px -1px #a0a0a0; white-space: nowrap; }
+  th.sorted::after { content: " ▲"; font-size: 8px; }
+  td { height: 18px; padding: 0 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-right: 1px solid #e3e3e3; border-bottom: 1px solid #e3e3e3; }
+  td.n, th.n { text-align: right; }
+  tr.sel td { background: var(--sel); color: #fff; border-color: var(--sel); }
+  td.low { color: #c00000; font-weight: bold; }
+  tr.sel td.low { color: #ffcccc; }
+  .rowno { width: 22px; background: var(--face); border: 1px solid; border-color: var(--hi) var(--shadow) var(--shadow) var(--hi); padding: 0; text-align: center; color: #000; }
+  tr.sel td.rowno { background: var(--face); color: #000; border-color: var(--hi) var(--shadow) var(--shadow) var(--hi); }
+  .vscroll { position: absolute; right: 0; top: 0; bottom: 0; width: 16px; background: repeating-conic-gradient(#fff 0 25%, var(--face) 0 50%) 0 0 / 2px 2px; display: flex; flex-direction: column; }
+  .vscroll b { height: 16px; display: grid; place-items: center; font: 7px/1 Tahoma; }
+  .vscroll .thumb { height: 60px; margin-top: 0; }
+
+  .tabs { display: flex; padding: 6px 4px 0; position: relative; z-index: 1; }
+  .tab { padding: 3px 10px 2px; border: 1px solid; border-color: var(--hi) var(--dark) transparent var(--hi); border-bottom: 0; border-radius: 3px 3px 0 0; margin-right: -1px; box-shadow: inset -1px 0 var(--shadow); }
+  .tab.on { padding-bottom: 4px; margin-top: -2px; background: var(--face); }
+  .sheet { margin: -1px 4px 4px; padding: 10px 10px 10px; display: flex; gap: 18px; border: 1px solid; border-color: var(--hi) var(--dark) var(--dark) var(--hi); box-shadow: inset -1px -1px var(--shadow); }
+  fieldset { border: 1px solid; border-color: var(--shadow) var(--hi) var(--hi) var(--shadow); box-shadow: inset 1px 1px var(--hi), 1px 1px var(--shadow) inset; padding: 8px 10px 9px; flex: 1; display: grid; grid-template-columns: 74px 1fr 80px 1fr; gap: 6px 8px; align-items: center; }
+  legend { padding: 0 3px; }
+  .side { display: grid; gap: 6px; align-content: start; padding-top: 6px; }
+
+  .status { height: 21px; display: flex; gap: 2px; margin-top: 3px; }
+  .status div { display: flex; align-items: center; padding: 0 5px; border: 1px solid; border-color: var(--shadow) var(--hi) var(--hi) var(--shadow); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="i-doc" viewBox="0 0 16 16"><path d="M3 1h7l3 3v11H3z" fill="#fff" stroke="#000"/><path d="M10 1v3h3" fill="none" stroke="#000"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 16 16"><path d="M1 4h5l1 1.5h8V14H1z" fill="#ffe680" stroke="#806000"/><path d="M1 6.5h14" stroke="#c8a000"/></symbol>
+    <symbol id="i-disk" viewBox="0 0 16 16"><path d="M1.5 1.5h12l1 1v12h-13z" fill="#3a5fa8" stroke="#000"/><rect x="4" y="2" width="8" height="5" fill="#fff"/><rect x="4" y="10" width="8" height="4" fill="#c0c0c0"/><rect x="9" y="3" width="2" height="3" fill="#3a5fa8"/></symbol>
+    <symbol id="i-print" viewBox="0 0 16 16"><rect x="4" y="1.5" width="8" height="5" fill="#fff" stroke="#000"/><rect x="1.5" y="6.5" width="13" height="6" fill="#c0c0c0" stroke="#000"/><rect x="4" y="10.5" width="8" height="4" fill="#fff" stroke="#000"/><rect x="12" y="8" width="1.5" height="1.5" fill="#0a0"/></symbol>
+    <symbol id="i-find" viewBox="0 0 16 16"><circle cx="6.5" cy="6.5" r="4.5" fill="#cfe8ff" stroke="#000" stroke-width="1.4"/><path d="M10 10l4.5 4.5" stroke="#6b3f00" stroke-width="2.6"/></symbol>
+    <symbol id="i-box" viewBox="0 0 16 16"><path d="M2 5l6-3 6 3v7l-6 3-6-3z" fill="#d9a55a" stroke="#5a3a00"/><path d="M2 5l6 3 6-3M8 8v7" fill="none" stroke="#5a3a00"/></symbol>
+    <symbol id="i-recv" viewBox="0 0 16 16"><path d="M2 7l6-3 6 3v6l-6 3-6-3z" fill="#d9a55a" stroke="#5a3a00"/><path d="M8 0v6M5 3.5L8 6l3-2.5" fill="none" stroke="#006000" stroke-width="1.8"/></symbol>
+    <symbol id="i-cart" viewBox="0 0 16 16"><path d="M0.5 2h2.5l2 8h8l1.5-5.5H4" fill="#fff" stroke="#000"/><circle cx="6" cy="13" r="1.4"/><circle cx="12" cy="13" r="1.4"/></symbol>
+    <symbol id="i-truck" viewBox="0 0 16 16"><rect x="0.5" y="4" width="9" height="7" fill="#cc2b2b" stroke="#000"/><path d="M9.5 6.5h3l3 3v1.5h-6z" fill="#ffd34d" stroke="#000"/><circle cx="3.5" cy="12.5" r="1.6" fill="#333"/><circle cx="12" cy="12.5" r="1.6" fill="#333"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 16 16"><rect x="0.5" y="0.5" width="15" height="15" fill="#fff" stroke="#000"/><rect x="3" y="8" width="2.5" height="5.5" fill="#cc2b2b"/><rect x="6.75" y="4" width="2.5" height="9.5" fill="#3a5fa8"/><rect x="10.5" y="6" width="2.5" height="7.5" fill="#2b9a2b"/></symbol>
+    <symbol id="i-help" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#ffffcc" stroke="#000"/><text x="8" y="12" text-anchor="middle" font-family="Tahoma" font-weight="bold" font-size="10" fill="#0a246a">?</text></symbol>
+    <symbol id="i-db" viewBox="0 0 16 16"><ellipse cx="8" cy="3.5" rx="6" ry="2.5" fill="#9fd29f" stroke="#003000"/><path d="M2 3.5v9c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5v-9" fill="#9fd29f" stroke="#003000"/><path d="M2 7c0 1.4 2.7 2.5 6 2.5S14 8.4 14 7" fill="none" stroke="#003000"/></symbol>
+    <symbol id="i-app" viewBox="0 0 16 16"><rect x="1" y="2" width="14" height="12" fill="#fff" stroke="#000"/><rect x="1" y="2" width="14" height="3" fill="#0a246a"/><path d="M3 8h10M3 10h7M3 12h9" stroke="#808080"/><path d="M11 9.5l2.5-2.5 1.5 1.5" stroke="#2b9a2b" stroke-width="1.4" fill="none"/></symbol>
+  </defs>
+</svg>
+
+<div class="win">
+  <div class="title" data-scan="window" data-tag="window · Ledgerline Inventory 3.1">
+    <svg class="ico"><use href="#i-app"/></svg>
+    <span>Ledgerline Inventory 3.1 - [Stock Items]</span>
+    <div class="caps"><b class="raised">_</b><b class="raised">□</b><b class="raised">✕</b></div>
+  </div>
+
+  <div class="menu" data-scan="menu" data-tag="menu bar · 9 menus">
+    <span>File</span><span>Edit</span><span>View</span><span>Records</span><span>Orders</span><span>Suppliers</span><span>Reports</span><span>Window</span><span>Help</span>
+  </div>
+
+  <div class="bar" data-scan="toolbar" data-tag="toolbar · 11 commands">
+    <div class="grip"></div>
+    <div class="tb"><svg><use href="#i-doc"/></svg>New</div>
+    <div class="tb"><svg><use href="#i-folder"/></svg>Open</div>
+    <div class="tb"><svg><use href="#i-disk"/></svg>Save</div>
+    <div class="tb"><svg><use href="#i-print"/></svg>Print</div>
+    <div class="sep"></div>
+    <div class="tb on"><svg><use href="#i-find"/></svg>Find</div>
+    <div class="tb"><svg><use href="#i-box"/></svg>Items</div>
+    <div class="tb"><svg><use href="#i-recv"/></svg>Receive</div>
+    <div class="tb"><svg><use href="#i-cart"/></svg>Reorder</div>
+    <div class="tb"><svg><use href="#i-truck"/></svg>Suppliers</div>
+    <div class="sep"></div>
+    <div class="tb"><svg><use href="#i-chart"/></svg>Reports</div>
+    <div class="tb"><svg><use href="#i-help"/></svg>Help</div>
+  </div>
+
+  <div class="body">
+    <div class="nav">
+      <div class="pane-h">Navigator</div>
+      <div class="tree sunken" data-scan="tree" data-tag="tree · 14 nodes">
+        <div><span class="pm">−</span><svg><use href="#i-db"/></svg>MAIN-01 Main Warehouse</div>
+        <div style="padding-left:12px"><span class="pm">−</span><svg><use href="#i-folder"/></svg>Inventory</div>
+        <div style="padding-left:28px"><span class="sp"></span><svg><use href="#i-box"/></svg><span class="hl">Stock Items</span></div>
+        <div style="padding-left:28px"><span class="sp"></span><svg><use href="#i-box"/></svg>Bin Locations</div>
+        <div style="padding-left:28px"><span class="sp"></span><svg><use href="#i-box"/></svg>Stock Adjustments</div>
+        <div style="padding-left:28px"><span class="sp"></span><svg><use href="#i-box"/></svg>Cycle Counts</div>
+        <div style="padding-left:12px"><span class="pm">−</span><svg><use href="#i-folder"/></svg>Orders</div>
+        <div style="padding-left:28px"><span class="sp"></span><svg><use href="#i-doc"/></svg>Purchase Orders (3)</div>
+        <div style="padding-left:28px"><span class="sp"></span><svg><use href="#i-doc"/></svg>Sales Orders</div>
+        <div style="padding-left:28px"><span class="sp"></span><svg><use href="#i-recv"/></svg>Receiving</div>
+        <div style="padding-left:12px"><span class="pm">+</span><svg><use href="#i-folder"/></svg>Suppliers</div>
+        <div style="padding-left:12px"><span class="pm">+</span><svg><use href="#i-folder"/></svg>Reports</div>
+        <div style="padding-left:12px"><span class="pm">+</span><svg><use href="#i-folder"/></svg>Administration</div>
+        <div><span class="pm">+</span><svg><use href="#i-db"/></svg>EAST-02 Distribution</div>
+      </div>
+    </div>
+
+    <div class="mdi">
+      <div class="child">
+        <div class="title small">
+          <svg class="ico"><use href="#i-box"/></svg>
+          <span>Stock Items</span>
+          <div class="caps"><b class="raised">_</b><b class="raised">□</b><b class="raised">✕</b></div>
+        </div>
+
+        <div class="filters" data-scan="filters" data-tag="search form · 4 fields">
+          <span>Find:</span>
+          <div class="field sunken" style="width:150px"></div>
+          <span style="margin-left:6px">Category:</span>
+          <div class="combo sunken" style="width:122px">(All categories)<i class="raised">▼</i></div>
+          <span style="margin-left:6px">Supplier:</span>
+          <div class="combo sunken" style="width:122px">(All suppliers)<i class="raised">▼</i></div>
+          <div class="btn raised def" style="margin-left:6px">Search</div>
+          <div class="btn raised">Clear</div>
+          <div class="chk" style="margin-left:6px"><b class="sunken"></b>Discontinued</div>
+        </div>
+
+        <div class="grid sunken" data-scan="grid" data-tag="data grid · 8 columns · 1,284 rows">
+          <table>
+            <colgroup><col style="width:22px"><col style="width:72px"><col style="width:200px"><col style="width:86px"><col style="width:140px"><col style="width:62px"><col style="width:66px"><col style="width:64px"><col></colgroup>
+            <thead><tr><th class="rowno"></th><th class="sorted">Item #</th><th>Description</th><th>Category</th><th>Supplier</th><th class="n">On Hand</th><th class="n">Reorder Pt</th><th class="n">Unit Cost</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td class="rowno">1</td><td>LL-10021</td><td>Hex bolt M8 x 40, zinc</td><td>Fasteners</td><td>Brightwater Supply</td><td class="n">4,820</td><td class="n">1,000</td><td class="n">0.18</td><td>In stock</td></tr>
+              <tr><td class="rowno">2</td><td>LL-10044</td><td>Flat washer M8</td><td>Fasteners</td><td>Brightwater Supply</td><td class="n low">612</td><td class="n">800</td><td class="n">0.04</td><td>REORDER</td></tr>
+              <tr><td class="rowno">3</td><td>LL-10107</td><td>Cable tie 200mm black (100)</td><td>Electrical</td><td>Kessler &amp; Daughters</td><td class="n">138</td><td class="n">50</td><td class="n">3.95</td><td>In stock</td></tr>
+              <tr class="sel"><td class="rowno">4</td><td>LL-10218</td><td>Safety glasses, clear</td><td>Safety</td><td>Norland Industrial</td><td class="n low">24</td><td class="n">40</td><td class="n">6.40</td><td>REORDER</td></tr>
+              <tr><td class="rowno">5</td><td>LL-10233</td><td>Nitrile gloves L (box 100)</td><td>Safety</td><td>Norland Industrial</td><td class="n">310</td><td class="n">120</td><td class="n">11.25</td><td>In stock</td></tr>
+              <tr><td class="rowno">6</td><td>LL-10302</td><td>Pallet wrap 18in x 1500ft</td><td>Packaging</td><td>Copperfield Paper Co.</td><td class="n low">0</td><td class="n">12</td><td class="n">24.90</td><td>BACKORDER</td></tr>
+              <tr><td class="rowno">7</td><td>LL-10347</td><td>Corrugated box 12x12x8</td><td>Packaging</td><td>Copperfield Paper Co.</td><td class="n">1,450</td><td class="n">500</td><td class="n">0.86</td><td>In stock</td></tr>
+              <tr><td class="rowno">8</td><td>LL-10411</td><td>Hydraulic hose 3/8in x 6ft</td><td>Hydraulics</td><td>Ostrander Fluid Power</td><td class="n">36</td><td class="n">20</td><td class="n">28.10</td><td>On order</td></tr>
+              <tr><td class="rowno">9</td><td>LL-10456</td><td>Bearing 6204-2RS</td><td>Bearings</td><td>Halvorsen Motion</td><td class="n">88</td><td class="n">60</td><td class="n">4.75</td><td>In stock</td></tr>
+              <tr><td class="rowno">10</td><td>LL-10498</td><td>V-belt A42</td><td>Power trans.</td><td>Halvorsen Motion</td><td class="n low">15</td><td class="n">25</td><td class="n">9.30</td><td>REORDER</td></tr>
+              <tr><td class="rowno">11</td><td>LL-10520</td><td>Shop towel roll</td><td>Janitorial</td><td>Brightwater Supply</td><td class="n">204</td><td class="n">100</td><td class="n">2.15</td><td>In stock</td></tr>
+              <tr><td class="rowno">12</td><td>LL-10563</td><td>LED tube 4ft 18W</td><td>Electrical</td><td>Kessler &amp; Daughters</td><td class="n">72</td><td class="n">48</td><td class="n">7.80</td><td>In stock</td></tr>
+              <tr><td class="rowno">13</td><td>LL-10588</td><td>Ear plugs, foam (200)</td><td>Safety</td><td>Norland Industrial</td><td class="n">57</td><td class="n">30</td><td class="n">18.60</td><td>In stock</td></tr>
+              <tr><td class="rowno">14</td><td>LL-10612</td><td>Packing tape 2in clear</td><td>Packaging</td><td>Copperfield Paper Co.</td><td class="n">420</td><td class="n">144</td><td class="n">1.95</td><td>In stock</td></tr>
+              <tr><td class="rowno">15</td><td>LL-10640</td><td>Lock nut M10 nylon</td><td>Fasteners</td><td>Brightwater Supply</td><td class="n">2,310</td><td class="n">750</td><td class="n">0.11</td><td>In stock</td></tr>
+              <tr><td class="rowno">16</td><td>LL-10677</td><td>Hi-vis vest, size L</td><td>Safety</td><td>Norland Industrial</td><td class="n">46</td><td class="n">24</td><td class="n">8.95</td><td>In stock</td></tr>
+              <tr><td class="rowno">17</td><td>LL-10702</td><td>Grease cartridge 14oz</td><td>Lubricants</td><td>Ostrander Fluid Power</td><td class="n">96</td><td class="n">36</td><td class="n">5.40</td><td>In stock</td></tr>
+              <tr><td class="rowno">18</td><td>LL-10735</td><td>Stretch hood bag 48in</td><td>Packaging</td><td>Copperfield Paper Co.</td><td class="n">380</td><td class="n">200</td><td class="n">0.72</td><td>In stock</td></tr>
+              <tr><td class="rowno">19</td><td>LL-10761</td><td>Fuse 10A slow-blow (10)</td><td>Electrical</td><td>Kessler &amp; Daughters</td><td class="n">64</td><td class="n">40</td><td class="n">6.15</td><td>In stock</td></tr>
+            </tbody>
+          </table>
+          <div class="vscroll"><b class="raised">▲</b><b class="raised thumb"></b><span style="flex:1"></span><b class="raised">▼</b></div>
+        </div>
+
+        <div class="tabs"><div class="tab on">General</div><div class="tab">Stock Levels</div><div class="tab">Purchasing</div><div class="tab">History</div><div class="tab">Notes</div></div>
+        <div class="sheet" data-scan="form" data-tag="item form · 6 fields · 3 actions">
+          <fieldset>
+            <legend>Item LL-10218</legend>
+            <span>Description:</span><div class="field sunken">Safety glasses, clear</div>
+            <span>Bin location:</span><div class="field sunken">A-07-03</div>
+            <span>Supplier:</span><div class="combo sunken">Norland Industrial<i class="raised">▼</i></div>
+            <span>Lead time:</span><div class="field sunken">5 days</div>
+            <span>On hand:</span><div class="field sunken" style="color:#c00000;font-weight:bold">24</div>
+            <span>Reorder qty:</span><div class="field sunken">120</div>
+          </fieldset>
+          <div class="side">
+            <div class="btn raised def">Reorder...</div>
+            <div class="btn raised">Adjust Stock...</div>
+            <div class="btn raised">Print Label</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="status" data-scan="status" data-tag="status bar">
+    <div style="flex:1">Ready</div>
+    <div style="width:150px">Records: 19 of 1,284</div>
+    <div style="width:160px">Warehouse: MAIN-01</div>
+    <div style="width:110px">User: ADMIN</div>
+    <div style="width:44px">NUM</div>
+    <div style="width:130px">11/08/2001 9:41 AM</div>
+  </div>
+</div>
+</body>
+</html>

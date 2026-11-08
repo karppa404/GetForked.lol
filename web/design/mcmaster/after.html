@@ -1,0 +1,186 @@
+<!doctype html>
+<!-- Unofficial redesign concept of the mcmaster.com home page. Not affiliated with or endorsed by McMaster-Carr.
+     Same categories, sections, links and product art as the live page; the wordmark is plain text, not their logo.
+     Product images come from .cache/tiles, cut from the live page by render.cjs (not committed). -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>McMaster-Carr home, redesign concept</title>
+<style>
+  :root {
+    --bg: #f6f7f5; --card: #fff; --line: #e4e7e2; --line-2: #d5dad3;
+    --ink: #141a16; --text: #3b443e; --dim: #6b746e;
+    --green: #2c6a30; --green-ink: #fff; --green-50: #ecf4ea; --green-100: #dbeada;
+    --r: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1440px; height: 900px; overflow: hidden; }
+  body { background: var(--bg); color: var(--text); font: 14px/1.4 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", sans-serif; -webkit-font-smoothing: antialiased; }
+  svg { display: block; }
+  a { color: inherit; text-decoration: none; }
+
+  .top { height: 64px; display: flex; align-items: center; gap: 20px; padding: 0 28px 0 20px; background: var(--card); border-bottom: 1px solid var(--line); }
+  .catalog-btn { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; border-radius: 9px; border: 1px solid var(--line-2); font-weight: 550; font-size: 13px; color: var(--ink); }
+  .wordmark { font: 700 20px/1 -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; letter-spacing: -0.02em; color: var(--green); }
+  .top-right { margin-left: auto; display: flex; align-items: center; gap: 22px; font-size: 13.5px; font-weight: 500; color: var(--text); }
+  .top-right .phone { color: var(--dim); font-variant-numeric: tabular-nums; font-weight: 400; }
+  .sep { width: 1px; height: 20px; background: var(--line); }
+  .login { display: inline-flex; align-items: center; gap: 4px; }
+  .order { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 16px; border-radius: 10px; background: var(--green); color: var(--green-ink); font-weight: 600; }
+
+  .layout { display: grid; grid-template-columns: 256px 1fr; height: calc(900px - 64px - 36px); }
+  .rail { padding: 22px 14px 0 16px; border-right: 1px solid var(--line); background: var(--card); overflow: hidden; }
+  .rail h2 { padding: 0 10px 8px; font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--dim); }
+  .rail li { list-style: none; }
+  .rail a { display: block; padding: 0 10px; height: 27.5px; line-height: 27.5px; border-radius: 7px; font-size: 13.5px; color: var(--text); white-space: nowrap; }
+  .rail a.on { background: var(--green-50); color: var(--green); font-weight: 600; }
+
+  main { padding: 26px 40px 0; overflow: hidden; }
+  .search { display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 10px 0 20px; border-radius: 14px; background: var(--card); border: 1px solid var(--line-2); box-shadow: 0 1px 2px rgb(20 26 22 / 0.04), 0 8px 24px -12px rgb(20 26 22 / 0.12); }
+  .search .ph { flex: 1; font-size: 16px; color: #8a928c; }
+  .icon-btn { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 10px; color: var(--text); }
+  .kbd { display: grid; place-items: center; min-width: 26px; height: 26px; padding: 0 7px; border-radius: 7px; border: 1px solid var(--line-2); font: 500 12px/1 ui-monospace, "SF Mono", monospace; color: var(--dim); }
+  .go { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: var(--ink); color: #fff; }
+
+  .head { display: flex; align-items: baseline; gap: 16px; margin-top: 30px; }
+  .crumb { font-size: 12.5px; color: var(--dim); margin-top: 26px; }
+  .crumb b { font-weight: 500; color: var(--text); }
+  .head h1 { font: 650 26px/1.15 -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; letter-spacing: -0.02em; color: var(--ink); }
+  .head .all { margin-left: auto; font-size: 13.5px; font-weight: 550; color: var(--green); }
+  .crumb + .head { margin-top: 6px; }
+
+  .tabs { display: flex; gap: 6px; margin-top: 16px; }
+  .tabs a { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line-2); background: var(--card); font-size: 13px; font-weight: 550; color: var(--text); }
+  .tabs a span { font-weight: 500; color: var(--dim); font-variant-numeric: tabular-nums; }
+  .tabs a.on { background: var(--ink); border-color: var(--ink); color: #fff; }
+  .tabs a.on span { color: rgb(255 255 255 / 0.6); }
+
+  .grid { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+  .card { display: grid; grid-template-rows: auto 1fr; border-radius: var(--r); background: var(--card); border: 1px solid var(--line); overflow: hidden; }
+  .well { height: 92px; margin: 5px 5px 0; border-radius: 8px; background: #f2f3f1; display: grid; place-items: center; overflow: hidden; }
+  .well img { width: 80px; height: 81px; mix-blend-mode: multiply; clip-path: inset(3px); }
+  .card p { padding: 9px 11px 11px; font-size: 12.5px; line-height: 1.3; font-weight: 550; color: var(--ink); }
+
+  .next { margin-top: 30px; display: flex; align-items: baseline; gap: 16px; }
+  .next h2 { font: 650 20px/1.2 -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; letter-spacing: -0.015em; color: var(--ink); }
+  .next .all { margin-left: auto; font-size: 13.5px; font-weight: 550; color: var(--green); }
+
+  footer { height: 36px; display: flex; align-items: center; gap: 18px; padding: 0 28px; background: var(--card); border-top: 1px solid var(--line); font-size: 12px; color: var(--dim); }
+  footer .legal { margin-left: auto; }
+</style>
+</head>
+<body>
+  <header class="top">
+    <a class="catalog-btn" href="#"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2.5 4h11M2.5 8h11M2.5 12h11"/></svg>Browse catalog</a>
+    <a class="wordmark" href="#">McMaster-Carr</a>
+    <nav class="top-right">
+      <span class="phone">(404) 346-7000</span>
+      <a href="#">Email us</a>
+      <span class="sep"></span>
+      <a class="login" href="#">Log in<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m3 4.5 3 3 3-3"/></svg></a>
+      <a href="#">Order history</a>
+      <a class="order" href="#"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 2h2l1.6 8h7.4l1.5-5.5H4.3"/><circle cx="6" cy="13" r="1"/><circle cx="12" cy="13" r="1"/></svg>Order</a>
+    </nav>
+  </header>
+
+  <div class="layout">
+    <aside class="rail">
+      <h2>Categories</h2>
+      <ul>
+        <li><a href="#">Abrading &amp; Polishing</a></li>
+        <li><a href="#">Building &amp; Grounds</a></li>
+        <li><a href="#">Electrical &amp; Lighting</a></li>
+        <li><a href="#">Fabricating</a></li>
+        <li><a class="on" href="#">Fastening &amp; Joining</a></li>
+        <li><a href="#">Filtering</a></li>
+        <li><a href="#">Flow &amp; Level Control</a></li>
+        <li><a href="#">Furniture &amp; Storage</a></li>
+        <li><a href="#">Hand Tools</a></li>
+        <li><a href="#">Hardware</a></li>
+        <li><a href="#">Heating &amp; Cooling</a></li>
+        <li><a href="#">Lubricating</a></li>
+        <li><a href="#">Material Handling</a></li>
+        <li><a href="#">Measuring &amp; Inspecting</a></li>
+        <li><a href="#">Office Supplies &amp; Signs</a></li>
+        <li><a href="#">Pipe, Tubing, Hose &amp; Fittings</a></li>
+        <li><a href="#">Plumbing &amp; Janitorial</a></li>
+        <li><a href="#">Power Transmission</a></li>
+        <li><a href="#">Pressure &amp; Temperature Control</a></li>
+        <li><a href="#">Pulling &amp; Lifting</a></li>
+        <li><a href="#">Raw Materials</a></li>
+        <li><a href="#">Safety Supplies</a></li>
+        <li><a href="#">Sawing &amp; Cutting</a></li>
+        <li><a href="#">Sealing</a></li>
+        <li><a href="#">Shipping</a></li>
+        <li><a href="#">Suspending</a></li>
+      </ul>
+    </aside>
+
+    <main>
+      <div class="search">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#3b443e" stroke-width="1.8" stroke-linecap="round"><circle cx="8.5" cy="8.5" r="6"/><path d="m13 13 4.5 4.5"/></svg>
+        <span class="ph">Search by product, part number or spec</span>
+        <span class="kbd">/</span>
+        <span class="icon-btn" title="Search by image"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M2.5 6.5a1.5 1.5 0 0 1 1.5-1.5h2.2l1.3-2h5l1.3 2H16a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 16 16H4a1.5 1.5 0 0 1-1.5-1.5Z"/><circle cx="10" cy="10.3" r="3"/></svg></span>
+        <span class="go"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 9h11M10 4.5 14.5 9 10 13.5"/></svg></span>
+      </div>
+
+      <p class="crumb">All categories <span aria-hidden="true">/</span> <b>Fastening &amp; Joining</b></p>
+      <div class="head">
+        <h1>Fastening &amp; Joining</h1>
+        <a class="all" href="#">Browse all →</a>
+      </div>
+      <nav class="tabs">
+        <a class="on" href="#">Fasteners <span>22</span></a>
+        <a href="#">Adhesives &amp; Tape <span>3</span></a>
+        <a href="#">Welding, Brazing &amp; Soldering <span>11</span></a>
+      </nav>
+
+      <div class="grid">
+        <a class="card" href="#"><div class="well"><img src=".cache/tiles/screws.png" alt=""></div><p>Screws &amp; Bolts</p></a>
+        <a class="card" href="#"><div class="well"><img src=".cache/tiles/threaded-rods.png" alt=""></div><p>Threaded Rods &amp; Studs</p></a>
+        <a class="card" href="#"><div class="well"><img src=".cache/tiles/eyebolts.png" alt=""></div><p>Eyebolts</p></a>
+        <a class="card" href="#"><div class="well"><img src=".cache/tiles/u-bolts.png" alt=""></div><p>U-Bolts</p></a>
+        <a class="card" href="#"><div class="well"><img src=".cache/tiles/nuts.png" alt=""></div><p>Nuts</p></a>
+        <a class="card" href="#"><div class="well"><img src=".cache/tiles/standard-washers.png" alt=""></div><p>Washers</p></a>
+        <a class="card" href="#"><div class="well"><img src=".cache/tiles/shims.png" alt=""></div><p>Shims</p></a>
+        <a class="card" href="#"><div class="well"><img src=".cache/tiles/threaded-inserts.png" alt=""></div><p>Helical &amp; Threaded Inserts</p></a>
+        <a class="card" href="#"><div class="well"><img src=".cache/tiles/spacers.png" alt=""></div><p>Spacers &amp; Standoffs</p></a>
+        <a class="card" href="#"><div class="well"><img src=".cache/tiles/pins.png" alt=""></div><p>Pins</p></a>
+        <a class="card" href="#"><div class="well"><img src=".cache/tiles/anchors.png" alt=""></div><p>Anchors</p></a>
+        <a class="card" href="#"><div class="well"><img src=".cache/tiles/nails.png" alt=""></div><p>Nails</p></a>
+        <a class="card" href="#"><div class="well"><img src=".cache/tiles/nailers.png" alt=""></div><p>Nailers</p></a>
+        <a class="card" href="#"><div class="well"><img src=".cache/tiles/rivets.png" alt=""></div><p>Rivets</p></a>
+        <a class="card" href="#"><div class="well"><img src=".cache/tiles/rivet-installation-tools.png" alt=""></div><p>Rivet Tools</p></a>
+        <a class="card" href="#"><div class="well"><img src=".cache/tiles/staples.png" alt=""></div><p>Staples</p></a>
+        <a class="card" href="#"><div class="well"><img src=".cache/tiles/staplers.png" alt=""></div><p>Staplers</p></a>
+        <a class="card" href="#"><div class="well"><img src=".cache/tiles/machine-keys.png" alt=""></div><p>Key Stock</p></a>
+        <a class="card" href="#"><div class="well"><img src=".cache/tiles/retaining-rings.png" alt=""></div><p>Retaining Rings</p></a>
+        <a class="card" href="#"><div class="well"><img src=".cache/tiles/cable-ties.png" alt=""></div><p>Cable Ties</p></a>
+        <a class="card" href="#"><div class="well"><img src=".cache/tiles/lanyards.png" alt=""></div><p>Lanyards</p></a>
+        <a class="card" href="#"><div class="well"><img src=".cache/tiles/magnets.png" alt=""></div><p>Magnets</p></a>
+      </div>
+
+      <div class="next">
+        <h2>Pipe, Tubing, Hose &amp; Fittings</h2>
+        <a class="all" href="#">Browse all →</a>
+      </div>
+      <div class="grid">
+        <a class="card" href="#"><div class="well"><img src=".cache/tiles/standard-pipe-fittings.png" alt=""></div><p>Pipe Fittings &amp; Pipe</p></a>
+        <a class="card" href="#"><div class="well"><img src=".cache/tiles/pipe-hangers.png" alt=""></div><p>Pipe Hangers</p></a>
+        <a class="card" href="#"><div class="well"><img src=".cache/tiles/pipe-joints.png" alt=""></div><p>Pipe Joints</p></a>
+        <a class="card" href="#"><div class="well"><img src=".cache/tiles/pipe-repair-clamps.png" alt=""></div><p>Pipe &amp; Tube Repair Clamps</p></a>
+        <a class="card" href="#"><div class="well"><img src=".cache/tiles/flange-spreaders.png" alt=""></div><p>Pipe Flange Spreaders</p></a>
+        <a class="card" href="#"><div class="well"><img src=".cache/tiles/tubing.png" alt=""></div><p>Tubing</p></a>
+        <a class="card" href="#"><div class="well"><img src=".cache/tiles/tube-fittings.png" alt=""></div><p>Tube Fittings</p></a>
+        <a class="card" href="#"><div class="well"><img src=".cache/tiles/tube-cutters.png" alt=""></div><p>Tube Cutters</p></a>
+      </div>
+    </main>
+  </div>
+
+  <footer>
+    <span>Home</span><span>Locations</span><span>Returns</span><span>International Orders</span><span>Careers</span><span>Mobile App</span><span>Solidworks Add-In</span><span>eProcurement</span><span>API</span><span>Help</span><span>Settings</span>
+    <span class="legal">Terms and Conditions · Privacy Policy</span>
+  </footer>
+</body>
+</html>

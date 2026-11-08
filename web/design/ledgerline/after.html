@@ -1,0 +1,238 @@
+<!doctype html>
+<!-- Ledgerline, rebuilt: the same Stock Items screen and data as before.html, redesigned. Rendered to /public/ledgerline/after.webp by render.cjs. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  :root {
+    --bg: #0b0c0f; --side: #090a0c; --card: #131418; --card-2: #181a1f; --line: rgb(255 255 255 / .07); --line-2: rgb(255 255 255 / .12);
+    --ink: #f4f4f6; --text: #c4c6cc; --dim: #8b8e97; --faint: #5d6069;
+    --accent: #8ea2ff; --accent-soft: rgb(142 162 255 / .14);
+    --green: #4ccf8a; --amber: #f2b546; --red: #ff6b6b; --blue: #6cb6ff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1200px; height: 760px; overflow: hidden; }
+  body::after { content: ""; position: fixed; inset: 0; box-shadow: inset 0 0 0 1px rgb(255 255 255 / .1); pointer-events: none; }
+  body { font: 13px/1.4 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", sans-serif; color: var(--text); background: var(--bg); -webkit-font-smoothing: antialiased; display: flex; }
+  svg { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  aside { width: 228px; flex: none; background: var(--side); border-right: 1px solid var(--line); display: flex; flex-direction: column; padding: 14px 10px; }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 14px; color: var(--ink); font-weight: 650; font-size: 14px; letter-spacing: -.01em; }
+  .logo { width: 26px; height: 26px; border-radius: 7px; background: linear-gradient(140deg, #a9b7ff, #5b6cf0); display: grid; place-items: center; box-shadow: inset 0 1px 0 rgb(255 255 255 / .35); }
+  .logo svg { width: 15px; height: 15px; color: #0b0c0f; stroke-width: 2.2; }
+  .ws { display: flex; align-items: center; gap: 8px; margin: 0 0 14px; padding: 8px 10px; border-radius: 8px; background: var(--card); border: 1px solid var(--line); color: var(--ink); font-weight: 500; }
+  .ws small { margin-left: auto; color: var(--dim); }
+  .grp { margin: 10px 8px 4px; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--faint); }
+  .nav a { display: flex; align-items: center; gap: 10px; height: 32px; padding: 0 10px; border-radius: 7px; color: var(--dim); font-weight: 500; }
+  .nav a.on { background: var(--accent-soft); color: var(--ink); }
+  .nav a.on svg { color: var(--accent); }
+  .nav a em { margin-left: auto; font-style: normal; font-size: 11px; color: var(--dim); }
+  .nav a em.b { color: var(--amber); background: rgb(242 181 70 / .12); padding: 1px 6px; border-radius: 99px; }
+  .me { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 8px; border-top: 1px solid var(--line); padding-top: 14px; color: var(--ink); font-weight: 500; }
+  .av { width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(140deg, #f2b546, #e2695b); display: grid; place-items: center; font-size: 11px; font-weight: 700; color: #1a1205; }
+  .me small { display: block; font-weight: 400; color: var(--dim); font-size: 11px; }
+
+  main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .top { height: 52px; flex: none; display: flex; align-items: center; gap: 12px; padding: 0 24px; border-bottom: 1px solid var(--line); }
+  .crumbs { display: flex; align-items: center; gap: 8px; color: var(--dim); font-weight: 500; }
+  .crumbs b { color: var(--ink); font-weight: 500; }
+  .search { margin-left: auto; width: 300px; height: 32px; display: flex; align-items: center; gap: 8px; padding: 0 10px; border-radius: 8px; background: var(--card); border: 1px solid var(--line); color: var(--faint); }
+  .kbd { margin-left: auto; font-size: 11px; color: var(--dim); border: 1px solid var(--line-2); border-radius: 5px; padding: 0 5px; }
+  .btn { height: 32px; display: inline-flex; align-items: center; gap: 7px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line-2); background: var(--card-2); color: var(--ink); font-weight: 500; white-space: nowrap; }
+  .btn.pri { background: #eef0ff; color: #12142a; border-color: transparent; box-shadow: inset 0 -1px 0 rgb(0 0 0 / .2); }
+  .icon-btn { width: 32px; padding: 0; justify-content: center; }
+
+  .content { flex: 1; min-height: 0; padding: 20px 24px 20px; display: flex; flex-direction: column; gap: 16px; }
+  .head { display: flex; align-items: flex-end; gap: 10px; }
+  .head h1 { font-size: 22px; line-height: 1.15; letter-spacing: -.02em; color: var(--ink); font-weight: 650; }
+  .head p { margin-top: 3px; color: var(--dim); }
+  .head .btn:first-of-type { margin-left: auto; }
+
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .stat { padding: 12px 14px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); }
+  .stat span { color: var(--dim); font-size: 12px; display: flex; align-items: center; gap: 6px; }
+  .stat span i { width: 7px; height: 7px; border-radius: 50%; }
+  .stat strong { display: block; margin-top: 4px; font-size: 22px; font-weight: 600; letter-spacing: -.02em; color: var(--ink); }
+  .stat small { color: var(--faint); font-size: 12px; margin-left: 6px; font-weight: 400; letter-spacing: 0; }
+
+  .split { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 268px; gap: 16px; }
+  .card { border-radius: 12px; background: var(--card); border: 1px solid var(--line); overflow: hidden; display: flex; flex-direction: column; }
+  .bar { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  .seg { display: flex; padding: 2px; border-radius: 8px; background: var(--bg); border: 1px solid var(--line); }
+  .seg span { padding: 3px 10px; border-radius: 6px; color: var(--dim); font-weight: 500; font-size: 12px; }
+  .seg span.on { background: var(--card-2); color: var(--ink); box-shadow: 0 0 0 1px var(--line-2); }
+  .seg span em { font-style: normal; color: var(--amber); margin-left: 4px; }
+  .chip { height: 28px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px; border-radius: 7px; border: 1px dashed var(--line-2); color: var(--dim); font-size: 12px; font-weight: 500; }
+  .chip:first-of-type { margin-left: auto; }
+
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  th { height: 34px; text-align: left; padding: 0 12px; font-size: 11px; font-weight: 600; color: var(--faint); letter-spacing: .03em; text-transform: uppercase; border-bottom: 1px solid var(--line); }
+  td { height: 40px; padding: 0 12px; border-bottom: 1px solid var(--line); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  td.r, th.r { text-align: right; }
+  .sku { font: 12px/1 ui-monospace, "SF Mono", Menlo, monospace; color: var(--dim); }
+  .name { color: var(--ink); font-weight: 500; }
+  tr.sel td { background: rgb(142 162 255 / .08); }
+  tr.sel td:first-child { box-shadow: inset 2px 0 var(--accent); }
+  .lvl { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+  .lvl i { width: 30px; height: 4px; border-radius: 4px; background: rgb(255 255 255 / .08); position: relative; overflow: hidden; }
+  .lvl i::after { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--p); border-radius: 4px; background: var(--c, var(--green)); }
+  .pill { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 99px; font-size: 12px; font-weight: 500; }
+  .pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .ok { color: var(--green); background: rgb(76 207 138 / .1); }
+  .low { color: var(--amber); background: rgb(242 181 70 / .12); }
+  .out { color: var(--red); background: rgb(255 107 107 / .12); }
+  .ord { color: var(--blue); background: rgb(108 182 255 / .12); }
+  .foot { margin-top: auto; display: flex; align-items: center; padding: 9px 12px; color: var(--dim); font-size: 12px; }
+  .foot span:last-child { margin-left: auto; }
+
+  .detail { padding: 16px; gap: 12px; }
+  .detail .sku { display: inline-block; padding: 3px 6px; border-radius: 5px; background: var(--card-2); border: 1px solid var(--line); }
+  .detail h2 { margin-top: 10px; font-size: 17px; letter-spacing: -.015em; color: var(--ink); font-weight: 600; }
+  .detail h2 + p { color: var(--dim); margin-top: 2px; }
+  .gauge { padding: 12px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); }
+  .gauge-top { display: flex; align-items: baseline; gap: 6px; }
+  .gauge-top strong { font-size: 24px; color: var(--amber); font-weight: 600; letter-spacing: -.02em; }
+  .gauge-top span { color: var(--dim); }
+  .gauge-top .pill { margin-left: auto; }
+  .track { position: relative; height: 6px; margin-top: 10px; border-radius: 6px; background: rgb(255 255 255 / .08); }
+  .track i { position: absolute; inset: 0 auto 0 0; width: 20%; border-radius: 6px; background: var(--amber); }
+  .track b { position: absolute; left: 33%; top: -4px; bottom: -4px; width: 2px; border-radius: 2px; background: var(--ink); opacity: .7; }
+  .gauge small { display: flex; justify-content: space-between; margin-top: 8px; color: var(--faint); font-size: 11px; }
+  dl { display: grid; grid-template-columns: auto 1fr; gap: 7px 12px; }
+  dt { color: var(--dim); }
+  dd { color: var(--ink); text-align: right; }
+  .feed { display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 12px; }
+  .feed h3 { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--faint); }
+  .feed p { display: flex; gap: 8px; align-items: center; color: var(--text); }
+  .feed p i { width: 6px; height: 6px; border-radius: 50%; background: var(--c); flex: none; }
+  .feed p span { margin-left: auto; color: var(--faint); }
+  .actions { display: grid; gap: 8px; margin-top: auto; }
+  .actions .btn { justify-content: center; height: 34px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="i-box" viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 3v2h6V3M8.5 13l2.5 2.5 4.5-5"/></symbol>
+    <symbol id="i-doc" viewBox="0 0 24 24"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></symbol>
+    <symbol id="i-cart" viewBox="0 0 24 24"><path d="M3 4h2.5l2.2 11h10.6L21 7.5H6.4"/><circle cx="9" cy="19.5" r="1.3"/><circle cx="17" cy="19.5" r="1.3"/></symbol>
+    <symbol id="i-in" viewBox="0 0 24 24"><path d="M4 14v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5M12 3v11M7.5 9.5L12 14l4.5-4.5"/></symbol>
+    <symbol id="i-truck" viewBox="0 0 24 24"><path d="M2 6h12v10H2zM14 9h4l4 4v3h-8z"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+    <symbol id="i-right" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+    <symbol id="i-export" viewBox="0 0 24 24"><path d="M12 15V3M7.5 7.5L12 3l4.5 4.5M4 14v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9L7 7M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></symbol>
+    <symbol id="i-tag" viewBox="0 0 24 24"><path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1.5"/></symbol>
+  </defs>
+</svg>
+
+<aside>
+  <div class="brand"><span class="logo"><svg><use href="#i-box"/></svg></span>Ledgerline</div>
+  <div class="ws"><svg style="color:var(--green)"><use href="#i-pin"/></svg>Main Warehouse<small>MAIN-01</small></div>
+  <nav class="nav">
+    <div class="grp">Inventory</div>
+    <a class="on"><svg><use href="#i-box"/></svg>Stock items<em class="num">1,284</em></a>
+    <a><svg><use href="#i-grid"/></svg>Bin locations</a>
+    <a><svg><use href="#i-sliders"/></svg>Adjustments</a>
+    <a><svg><use href="#i-check"/></svg>Cycle counts</a>
+    <div class="grp">Orders</div>
+    <a><svg><use href="#i-doc"/></svg>Purchase orders<em class="b num">3</em></a>
+    <a><svg><use href="#i-cart"/></svg>Sales orders</a>
+    <a><svg><use href="#i-in"/></svg>Receiving</a>
+    <div class="grp">Network</div>
+    <a><svg><use href="#i-truck"/></svg>Suppliers</a>
+    <a><svg><use href="#i-chart"/></svg>Reports</a>
+  </nav>
+  <div class="me"><span class="av">AD</span><span>Admin<small>Ledgerline Co.</small></span><svg style="margin-left:auto;color:var(--dim)"><use href="#i-gear"/></svg></div>
+</aside>
+
+<main>
+  <div class="top">
+    <div class="crumbs">Inventory<svg style="width:14px;height:14px"><use href="#i-right"/></svg><b>Stock items</b></div>
+    <div class="search"><svg><use href="#i-search"/></svg>Search items, SKUs, suppliers<span class="kbd">⌘K</span></div>
+    <span class="btn icon-btn"><svg><use href="#i-bell"/></svg></span>
+  </div>
+
+  <div class="content">
+    <div class="head">
+      <div><h1>Stock items</h1><p>Main Warehouse · synced just now</p></div>
+      <span class="btn"><svg><use href="#i-export"/></svg>Export</span>
+      <span class="btn"><svg><use href="#i-in"/></svg>Receive</span>
+      <span class="btn pri"><svg><use href="#i-plus"/></svg>New item</span>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><span>Items tracked</span><strong class="num">1,284<small>+18 this month</small></strong></div>
+      <div class="stat"><span><i style="background:var(--amber)"></i>Below reorder point</span><strong class="num">3<small>LL-10044, 10218, 10498</small></strong></div>
+      <div class="stat"><span><i style="background:var(--red)"></i>Backordered</span><strong class="num">1<small>Pallet wrap 18in</small></strong></div>
+      <div class="stat"><span>Inventory value</span><strong class="num">$482.6k<small>at unit cost</small></strong></div>
+    </div>
+
+    <div class="split">
+      <div class="card">
+        <div class="bar">
+          <div class="seg"><span class="on">All</span><span>Low stock<em>3</em></span><span>On order</span><span>Backorder</span></div>
+          <span class="chip"><svg style="width:14px;height:14px"><use href="#i-tag"/></svg>Category</span>
+          <span class="chip"><svg style="width:14px;height:14px"><use href="#i-truck"/></svg>Supplier</span>
+        </div>
+        <table>
+          <colgroup><col style="width:86px"><col><col style="width:138px"><col style="width:92px"><col style="width:112px"></colgroup>
+          <thead><tr><th>SKU</th><th>Item</th><th>Supplier</th><th class="r">On hand</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td class="sku">LL-10021</td><td class="name">Hex bolt M8 x 40, zinc</td><td>Brightwater Supply</td><td class="r"><div class="lvl"><i style="--p:100%"></i><span class="num">4,820</span></div></td><td><span class="pill ok">In stock</span></td></tr>
+            <tr><td class="sku">LL-10044</td><td class="name">Flat washer M8</td><td>Brightwater Supply</td><td class="r"><div class="lvl"><i style="--p:38%;--c:var(--amber)"></i><span class="num">612</span></div></td><td><span class="pill low">Reorder</span></td></tr>
+            <tr><td class="sku">LL-10107</td><td class="name">Cable tie 200mm black (100)</td><td>Kessler &amp; Daughters</td><td class="r"><div class="lvl"><i style="--p:92%"></i><span class="num">138</span></div></td><td><span class="pill ok">In stock</span></td></tr>
+            <tr class="sel"><td class="sku">LL-10218</td><td class="name">Safety glasses, clear</td><td>Norland Industrial</td><td class="r"><div class="lvl"><i style="--p:20%;--c:var(--amber)"></i><span class="num">24</span></div></td><td><span class="pill low">Reorder</span></td></tr>
+            <tr><td class="sku">LL-10233</td><td class="name">Nitrile gloves L (box 100)</td><td>Norland Industrial</td><td class="r"><div class="lvl"><i style="--p:86%"></i><span class="num">310</span></div></td><td><span class="pill ok">In stock</span></td></tr>
+            <tr><td class="sku">LL-10302</td><td class="name">Pallet wrap 18in x 1500ft</td><td>Copperfield Paper Co.</td><td class="r"><div class="lvl"><i style="--p:0%"></i><span class="num">0</span></div></td><td><span class="pill out">Backorder</span></td></tr>
+            <tr><td class="sku">LL-10347</td><td class="name">Corrugated box 12x12x8</td><td>Copperfield Paper Co.</td><td class="r"><div class="lvl"><i style="--p:96%"></i><span class="num">1,450</span></div></td><td><span class="pill ok">In stock</span></td></tr>
+            <tr><td class="sku">LL-10411</td><td class="name">Hydraulic hose 3/8in x 6ft</td><td>Ostrander Fluid Power</td><td class="r"><div class="lvl"><i style="--p:60%;--c:var(--blue)"></i><span class="num">36</span></div></td><td><span class="pill ord">On order</span></td></tr>
+            <tr><td class="sku">LL-10456</td><td class="name">Bearing 6204-2RS</td><td>Halvorsen Motion</td><td class="r"><div class="lvl"><i style="--p:74%"></i><span class="num">88</span></div></td><td><span class="pill ok">In stock</span></td></tr>
+            <tr><td class="sku">LL-10498</td><td class="name">V-belt A42</td><td>Halvorsen Motion</td><td class="r"><div class="lvl"><i style="--p:30%;--c:var(--amber)"></i><span class="num">15</span></div></td><td><span class="pill low">Reorder</span></td></tr>
+          </tbody>
+        </table>
+        <div class="foot"><span>Showing 1–10 of 1,284</span><span>Sorted by SKU</span></div>
+      </div>
+
+      <div class="card detail">
+        <div>
+          <span class="sku">LL-10218</span>
+          <h2>Safety glasses, clear</h2>
+          <p>Safety · Bin A-07-03</p>
+        </div>
+        <div class="gauge">
+          <div class="gauge-top"><strong class="num">24</strong><span>on hand</span></div>
+          <div class="track"><i></i><b></b></div>
+          <small><span>0</span><span>Reorder point 40</span><span>120</span></small>
+        </div>
+        <dl>
+          <dt>Supplier</dt><dd>Norland Industrial</dd>
+          <dt>Lead time</dt><dd>5 days</dd>
+          <dt>Reorder qty</dt><dd class="num">120</dd>
+          <dt>Unit cost</dt><dd class="num">$6.40</dd>
+        </dl>
+        <div class="feed">
+          <h3>Activity</h3>
+          <p><i style="--c:var(--amber)"></i>Fell below reorder point<span>Today</span></p>
+          <p><i style="--c:var(--green)"></i>Received 120 from PO-10398<span>Oct 2</span></p>
+        </div>
+        <div class="actions">
+          <span class="btn pri"><svg><use href="#i-cart"/></svg>Reorder 120 units</span>
+          <div class="row2"><span class="btn">Adjust stock</span><span class="btn">Print label</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+</body>
+</html>
