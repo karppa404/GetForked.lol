@@ -39,6 +39,8 @@ class AnalysisTests(unittest.TestCase):
                 self.assertIn('--ignore-user-config', command)
                 self.assertIn('features.shell_tool=false', command)
                 self.assertNotIn('secret', kwargs['input'])
+                self.assertIn('\"network_status\": \"not_captured\"', kwargs['input'])
+                self.assertIn('network evidence', kwargs['input'])
                 Path(command[command.index('-o') + 1]).write_text('# User stories\nSynthetic test report')
                 return SimpleNamespace(returncode=0)
             with patch('codex_analysis.require_subscription'), patch('codex_analysis.subprocess.run', side_effect=execute):
