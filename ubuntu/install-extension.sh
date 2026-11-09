@@ -6,4 +6,7 @@ mkdir -p "$target_dir"
 install -m 644 "$source_dir/gnome-extension/metadata.json" "$target_dir/metadata.json"
 install -m 644 "$source_dir/gnome-extension/extension.js" "$target_dir/extension.js"
 install -m 644 "$source_dir/app.py" "$target_dir/app.py"
+install -m 644 "$source_dir/capture.py" "$target_dir/capture.py"
+install -m 644 "$source_dir/codex_analysis.py" "$target_dir/codex_analysis.py"
+install -m 644 "$source_dir/integration.py" "$target_dir/integration.py"
 printf '%s\n' 'Installed Retrace extension. Log out and back in, then run: gnome-extensions enable retrace@local'
