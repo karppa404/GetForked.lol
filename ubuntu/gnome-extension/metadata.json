@@ -1,0 +1,6 @@
+{
+  "uuid": "retrace@local",
+  "name": "Retrace",
+  "description": "Launch the Retrace Ubuntu recorder from the top bar",
+  "shell-version": ["45", "46", "47", "48", "49"]
+}
