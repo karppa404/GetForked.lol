@@ -78,6 +78,7 @@ body:has(.lp) { background: #07080a; }
   mask-image: radial-gradient(ellipse 46% 54% at 56% 44%, #000 30%, transparent 74%);
   opacity: 0.9; }
 .lp-hero h1 span { display: inline-block; }
+.lp-hero h1 .lp-hero-lead { display: block; font-size: 1.35em; font-weight: 700; letter-spacing: -0.02em; line-height: 1; margin-bottom: 0.12em; }
 .lp-hero h1 { max-width: 20ch; margin: 0 auto; font-size: var(--t-h1); line-height: 1.1; font-weight: 600; letter-spacing: -0.01em; text-shadow: 0 4px 4px rgb(0 0 0 / 0.15); }
 .lp-lede { max-width: 600px; margin: var(--s-5) auto 0; font-size: var(--t-lg); line-height: 1.35; letter-spacing: 0.2px; color: var(--lp-ink); text-shadow: 0 4px 4px rgb(0 0 0 / 0.25); }
 .lp-actions { display: grid; justify-items: center; gap: var(--s-2); margin-top: var(--s-7); }

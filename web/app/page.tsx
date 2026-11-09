@@ -46,7 +46,7 @@ export default function Home() {
 
       <main id="main">
         <section className="lp-hero" aria-labelledby="hero-title">
-          <h1 id="hero-title"><span>Scan a legacy app.</span> <span>Get the blueprint to rebuild it.</span></h1>
+          <h1 id="hero-title"><span className="lp-hero-lead">GET F**ked!</span> <span>Get the blueprint to rebuild it.</span></h1>
           <div className="lp-actions">
             <TrackedLink event="Download" location="hero" href={DOWNLOAD} className="lp-btn lp-btn--light"><AppleGlyph />Download for Mac</TrackedLink>
             <p className="lp-mono">macOS 14+ and Apple Silicon required · {VERSION}</p>
