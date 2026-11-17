@@ -90,6 +90,9 @@ public enum ManifestValidator {
             }
         }
 
+        if let note = m.networkNote, note.isEmpty || note.count > SessionManifest.maxNetworkNote {
+            fail("network_note", "must be 1-\(SessionManifest.maxNetworkNote) characters")
+        }
         switch m.networkStatus {
         case .notCaptured, .noneObserved:
             if !m.network.isEmpty { fail("network", "must be empty when network_status is \(m.networkStatus.rawValue)") }

@@ -23,6 +23,17 @@ public struct DeviceCredential: Codable, Equatable, Sendable, CustomStringConver
     }
 
     public var description: String { "DeviceCredential(project: \(projectId), server: \(apiBaseURL), token: <redacted>)" }
+
+    /// Keychain key for the engine bundled in Retrace.app. Its port changes on every launch, so its
+    /// credential is stored under this stable identity instead of a URL and rebound at runtime.
+    public static let embeddedServerKey = "embedded-local-server"
+
+    /// The same credential addressed to `server` (a URL or `embeddedServerKey`).
+    public func bound(to server: String) -> DeviceCredential {
+        var c = self
+        c.apiBaseURL = server
+        return c
+    }
 }
 
 public protocol CredentialStore: Sendable {
@@ -94,4 +105,32 @@ public final class InMemoryCredentialStore: CredentialStore, @unchecked Sendable
     public func load(apiBaseURL: String) throws -> DeviceCredential? { lock.withLock { items[apiBaseURL] } }
     public func save(_ c: DeviceCredential) throws { lock.withLock { items[c.apiBaseURL] = c } }
     public func delete(apiBaseURL: String) throws { lock.withLock { _ = items.removeValue(forKey: apiBaseURL) } }
+}
+
+/// One secret string (the model API key) per account, read from the Keychain. Retrace no longer
+/// writes it; a key saved by an older version, or added with `security`, is still used.
+public protocol SecretStore: Sendable {
+    func load(_ account: String) throws -> String?
+}
+
+public struct KeychainSecretStore: SecretStore {
+    public let service: String
+    public init(service: String = "dev.retrace.recorder.model-api-key") { self.service = service }
+
+    func baseQuery(_ account: String) -> [String: Any] {
+        [kSecClass as String: kSecClassGenericPassword,
+         kSecAttrService as String: service,
+         kSecAttrAccount as String: account]
+    }
+
+    public func load(_ account: String) throws -> String? {
+        var q = baseQuery(account)
+        q[kSecReturnData as String] = true
+        q[kSecMatchLimit as String] = kSecMatchLimitOne
+        var out: CFTypeRef?
+        let status = SecItemCopyMatching(q as CFDictionary, &out)
+        if status == errSecItemNotFound { return nil }
+        guard status == errSecSuccess, let data = out as? Data else { throw CredentialStoreError.keychain(status) }
+        return String(data: data, encoding: .utf8)
+    }
 }

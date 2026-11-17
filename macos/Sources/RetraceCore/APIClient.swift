@@ -21,12 +21,14 @@ public struct URLSessionTransport: HTTPTransport {
     }
 }
 
-public enum APIError: Error, Equatable, CustomStringConvertible {
+public enum APIError: Error, Equatable, CustomStringConvertible, LocalizedError {
     case invalidBaseURL(String)
     case invalidInput(String)
     case transport(String)
     case http(status: Int, detail: String?)
     case decoding(String)
+
+    public var errorDescription: String? { description }
 
     public var description: String {
         switch self {
@@ -128,7 +130,17 @@ public struct APIClient: Sendable {
 
     /// Sends a request and decodes a 2xx JSON body. Non-2xx becomes `APIError.http` with a
     /// short, sanitized `detail` (never echoed request contents).
-    public func perform<T: Decodable>(_ request: URLRequest, as: T.Type) async throws -> T {
+    public func perform<T: Decodable>(_ request: URLRequest, as: T.Type, decoder: JSONDecoder = ManifestCoding.decoder()) async throws -> T {
+        let data = try await performData(request)
+        do {
+            return try decoder.decode(T.self, from: data)
+        } catch {
+            throw APIError.decoding(String(describing: T.self))
+        }
+    }
+
+    /// Sends a request and returns a 2xx body as raw bytes (images, untyped JSON).
+    public func performData(_ request: URLRequest) async throws -> Data {
         let data: Data
         let response: HTTPURLResponse
         do {
@@ -141,11 +153,7 @@ public struct APIClient: Sendable {
         guard (200..<300).contains(response.statusCode) else {
             throw APIError.http(status: response.statusCode, detail: Self.errorDetail(data))
         }
-        do {
-            return try ManifestCoding.decoder().decode(T.self, from: data)
-        } catch {
-            throw APIError.decoding(String(describing: T.self))
-        }
+        return data
     }
 
     static func errorDetail(_ data: Data) -> String? {

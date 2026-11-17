@@ -42,3 +42,38 @@ def test_export_relative_timestamps_and_status():
     assert [(e["id"], e["timestamp_ms"]) for e in out["network"]] == [("a", 100), ("b", 2500)]
     assert "token=x" not in out["network"][1]["url"]
     assert exp.convert([], start, 10)["network_status"] == "none_observed"
+
+
+def test_static_assets_are_skipped_and_api_calls_kept():
+    cap = _load("retrace_capture")
+    assert cap.is_static("https://discord.com/assets/bf559b2381f6f5b6.js", [], [])
+    assert cap.is_static("https://cdn.discordapp.com/avatars/1/abc", [("Sec-Fetch-Dest", "image")], [])
+    assert cap.is_static("https://h/x", [], [("Content-Type", "text/css; charset=utf-8")])
+    assert not cap.is_static("https://discord.com/api/v9/users/@me", [("sec-fetch-dest", "empty")],
+                             [("content-type", "application/json")])
+    assert not cap.is_static("https://discord.com/api/v9/science", [], [])
+
+
+def test_websocket_upgrade_recorded_as_wss_once():
+    cap = _load("retrace_capture")
+    url = "https://gateway.discord.gg/?encoding=etf&v=9"
+    assert cap.effective_url(url, 101, [("Upgrade", "websocket")]) == "wss://gateway.discord.gg/?encoding=etf&v=9"
+    assert cap.effective_url(url, 200, [("Upgrade", "websocket")]) == url
+    e = cap.entry_from_parts("GET", cap.effective_url(url, 101, [("upgrade", "websocket")]), 101,
+                             [("Sec-WebSocket-Key", "dGhlIHNhbXBsZSBub25jZQ=="), ("Cookie", "c=1")], [], None, None, 0, False)
+    assert e["url"].startswith("wss://") and "c=1" not in json.dumps(e) and "dGhlIHNh" not in json.dumps(e)
+
+
+def test_discord_fingerprint_headers_and_opaque_ids_redacted():
+    from retrace.redaction import REDACTED, redact_headers
+
+    h = redact_headers({
+        "authorization": "test-only-authorization",
+        "x-super-properties": "eyJvcyI6Ik1hYyBPUyBYIiwiYnJvd3NlciI6IkRpc2NvcmQgQ2xpZW50In0=",
+        "x-installation-id": "1438012345678901234.-asFPtYh-iwa2KpMQCwV1JibYYY",
+        "x-discord-locale": "en-US",
+        "x-discord-timezone": "America/Chicago",
+    })
+    for k in ("authorization", "x-super-properties", "x-installation-id"):
+        assert h[k] == REDACTED, k
+    assert h["x-discord-locale"] == "en-US" and h["x-discord-timezone"] == "America/Chicago"

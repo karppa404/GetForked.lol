@@ -9,15 +9,17 @@ public struct ReviewState: Codable, Equatable, Sendable {
     public var removeWindowTitles: Bool
     public var removeAccessibilityText: Bool
     /// Set only by an explicit confirmation in the review UI.
+    public var includeScanReport: Bool?
     public var confirmedAt: String?
 
     public init(omittedFrameIds: Set<String> = [], omittedInteractionIds: Set<String> = [],
-                removeWindowTitles: Bool = false, removeAccessibilityText: Bool = false, confirmedAt: String? = nil) {
+                removeWindowTitles: Bool = false, removeAccessibilityText: Bool = false, confirmedAt: String? = nil, includeScanReport: Bool = false) {
         self.omittedFrameIds = omittedFrameIds
         self.omittedInteractionIds = omittedInteractionIds
         self.removeWindowTitles = removeWindowTitles
         self.removeAccessibilityText = removeAccessibilityText
         self.confirmedAt = confirmedAt
+        self.includeScanReport = includeScanReport
     }
 
     public var isConfirmed: Bool { confirmedAt != nil }
@@ -46,6 +48,11 @@ public enum ReviewApplier {
 
         var m = raw
         m.projectId = projectId
+        if !review.omittedFrameIds.isEmpty || !review.omittedInteractionIds.isEmpty
+            || review.removeWindowTitles || review.removeAccessibilityText { m.scanTargetURL = nil }
+        // Free text cannot be reliably reconciled with omitted screenshots or removed titles.
+        if review.includeScanReport != true || !review.omittedFrameIds.isEmpty || !review.omittedInteractionIds.isEmpty
+            || review.removeWindowTitles || review.removeAccessibilityText { m.scanReport = nil }
         m.frames = raw.frames.filter { !review.omittedFrameIds.contains($0.id) }
         let kept = Set(m.frames.map(\.id))
         m.interactions = raw.interactions

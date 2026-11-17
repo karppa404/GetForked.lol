@@ -29,6 +29,12 @@ _SENSITIVE_HEADERS = {
     "x-goog-api-key",
     "x-session-id",
     "www-authenticate",
+    # client fingerprints / install ids (e.g. Discord); not secrets, but identifying
+    "x-super-properties",
+    "x-context-properties",
+    "x-installation-id",
+    "x-fingerprint",
+    "x-device-id",
 }
 _SENSITIVE_NAME = re.compile(
     r"(pass(word|wd)?|secret|token|auth|session|sid|cookie|key|signature|sig|credential|jwt|bearer|otp|"
@@ -82,6 +88,8 @@ def redact_headers(headers: dict[str, Any] | None) -> dict[str, str] | None:
                 out[key] = redact_text(sval)[:500]
             else:
                 out[key] = REDACTED
+        elif _looks_secret(sval.strip()):
+            out[key] = REDACTED  # opaque high-entropy value: an id or token we don't know by name
         else:
             out[key] = redact_text(sval)[:500]
     return out
