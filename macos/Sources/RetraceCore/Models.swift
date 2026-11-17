@@ -9,6 +9,7 @@ import Foundation
 /// - `Interaction.delayed_frame_id`: the settled-state frame captured ~1.5 s after an action.
 public struct SessionManifest: Codable, Equatable, Sendable {
     public static let currentSchemaVersion = 1
+    public static let maxNetworkNote = 1000
 
     public var schemaVersion: Int
     public var id: String
@@ -16,6 +17,8 @@ public struct SessionManifest: Codable, Equatable, Sendable {
     public var app: AppInfo
     /// Legacy field: older local sessions stored a user-typed task. New sessions omit it;
     /// Retrace observes selected-app activity and never asks for intent.
+    public var scanTargetURL: String?
+    public var scanReport: String?
     public var task: String?
     public var startedAt: String
     public var durationMs: Int
@@ -23,6 +26,9 @@ public struct SessionManifest: Codable, Equatable, Sendable {
     public var frames: [Frame]
     public var network: [NetworkEvent]
     public var networkStatus: NetworkStatus
+    /// Why network was not captured (wrong browser, declined, mitmproxy missing…), so a
+    /// `not_captured` session says why instead of silently omitting the API graph.
+    public var networkNote: String?
     public var redaction: Redaction
 
     public init(
@@ -31,12 +37,15 @@ public struct SessionManifest: Codable, Equatable, Sendable {
         projectId: String? = nil,
         app: AppInfo,
         task: String? = nil,
+        scanReport: String? = nil,
+        scanTargetURL: String? = nil,
         startedAt: String,
         durationMs: Int,
         interactions: [Interaction] = [],
         frames: [Frame] = [],
         network: [NetworkEvent] = [],
         networkStatus: NetworkStatus = .notCaptured,
+        networkNote: String? = nil,
         redaction: Redaction = Redaction(reviewed: false)
     ) {
         self.schemaVersion = schemaVersion
@@ -44,12 +53,15 @@ public struct SessionManifest: Codable, Equatable, Sendable {
         self.projectId = projectId
         self.app = app
         self.task = task
+        self.scanReport = scanReport
+        self.scanTargetURL = scanTargetURL
         self.startedAt = startedAt
         self.durationMs = durationMs
         self.interactions = interactions
         self.frames = frames
         self.network = network
         self.networkStatus = networkStatus
+        self.networkNote = networkNote
         self.redaction = redaction
     }
 }
@@ -93,6 +105,8 @@ public enum InteractionKind: String, Codable, Sendable, CaseIterable {
     case rightClick = "right_click"
     case otherClick = "other_click"
     case scroll
+    /// Screenshot checkpoint after an automated computer-use tool call; not a user action.
+    case checkpoint
     /// A safe, named key or shortcut (e.g. `return`, `cmd+s`). Never a printable character.
     case key
     /// A burst of printable typing. The characters are never recorded; `key` is `"redacted"`.

@@ -1,4 +1,5 @@
 import AppKit
+import RetraceCore
 import CoreGraphics
 import ImageIO
 import ScreenCaptureKit
@@ -86,9 +87,6 @@ actor FrameCapturer {
     }
 
     nonisolated static func jpegData(_ image: CGImage, quality: Double = 0.78) -> Data? {
-        let data = NSMutableData()
-        guard let dest = CGImageDestinationCreateWithData(data, UTType.jpeg.identifier as CFString, 1, nil) else { return nil }
-        CGImageDestinationAddImage(dest, image, [kCGImageDestinationLossyCompressionQuality: quality] as CFDictionary)
-        return CGImageDestinationFinalize(dest) ? data as Data : nil
+        ScreenshotCompression.jpeg(image, quality: quality)
     }
 }

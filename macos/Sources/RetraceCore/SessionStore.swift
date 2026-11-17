@@ -122,16 +122,19 @@ public struct SessionStore: Sendable {
 
     public func load(id: String) throws -> LocalSession { try Self.load(directory: directory(for: id)) }
 
+    /// Removes a session's folder: manifest, frames, review and upload record. Already gone is fine.
+    public func delete(id: String) throws {
+        guard ManifestValidator.isUUID(id) else { throw SessionStoreError.unsafeFilename(id) }
+        let dir = directory(for: id)
+        guard FileManager.default.fileExists(atPath: dir.path) else { return }
+        try FileManager.default.removeItem(at: dir)
+    }
+
     /// All readable sessions, newest first. Unreadable directories are skipped.
     public func list() -> [LocalSession] {
         let dirs = (try? FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)) ?? []
         return dirs.compactMap { try? Self.load(directory: $0) }
             .sorted { $0.manifest.startedAt > $1.manifest.startedAt }
-    }
-
-    public func delete(id: String) throws {
-        guard ManifestValidator.isUUID(id) else { throw SessionStoreError.unsafeFilename(id) }
-        try FileManager.default.removeItem(at: directory(for: id))
     }
 
     /// Loads exactly the frame files referenced by `manifest`, verifying names and hashes.

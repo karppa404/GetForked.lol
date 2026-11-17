@@ -39,6 +39,8 @@ final class Recorder: ObservableObject {
 
     let store: SessionStore
     let maxFrames = 300
+    /// Optional per-recording network capture for Electron/Chromium apps.
+    let network = NetworkCaptureController()
 
     private var target: NSRunningApplication?
     private var targetPID: pid_t = 0
@@ -67,12 +69,31 @@ final class Recorder: ObservableObject {
     init(store: SessionStore) { self.store = store }
 
     var isActive: Bool { state != .idle }
+    /// The session being recorded (or finishing), which must not be deleted.
+    var activeSessionId: String? { isActive ? sessionId : nil }
+
+    var scanReport: String?
+    private var scanTargetURL: URL?
+
+    var activeTargetPID: pid_t { targetPID }
+
+    /// AX-driven actions may bypass passive event monitors. Retain an explicit screen checkpoint.
+    func scanCheckpoint() async {
+        guard state == .recording, capturingAllowed, let capturer else { return }
+        guard let image = try? await capturer.capture(), capturingAllowed, let id = reserveFrame() else { return }
+        guard let frameId = await persist(image, id: id) else { return }
+        cache = (image, frameId)
+        record(Interaction(timestampMs: clock.milliseconds(atUptime: image.uptime), kind: .checkpoint,
+                           accessibility: AXInspector.focusedElement(pid: targetPID).map(AXInspector.snapshot(of:)),
+                           afterFrameId: frameId))
+    }
 
     private var now: TimeInterval { ProcessInfo.processInfo.systemUptime }
 
     // MARK: Start / stop
 
-    func start(app: NSRunningApplication) async throws {
+    func start(app requested: NSRunningApplication, targetURL: URL? = nil) async throws {
+        var app = requested
         guard state == .idle else { throw RecorderError.alreadyRecording }
         guard app.processIdentifier != getpid(), app.bundleIdentifier != Bundle.main.bundleIdentifier else {
             throw RecorderError.invalidTarget("Retrace cannot record itself.")
@@ -84,16 +105,26 @@ final class Recorder: ObservableObject {
         guard Permissions.screenRecordingGranted else {
             throw RecorderError.permissionsMissing("Screen Recording permission is required for evidence frames.")
         }
+        // May quit and reopen the app through the capture proxy (after asking). For a web
+        // scan the browser keeps its profile and only the target's site is recorded.
+        app = try await network.prepare(app, targetURL: targetURL)
 
         let capturer = FrameCapturer(pid: app.processIdentifier)
-        displayFrame = try await capturer.prepare()
         let id = UUID().uuidString.lowercased()
-        try store.createSessionDirectory(id: id)
+        do {
+            displayFrame = try await capturer.prepare()
+            try store.createSessionDirectory(id: id)
+        } catch {
+            network.abort()
+            throw error
+        }
 
         self.capturer = capturer
+        self.scanReport = nil
+        self.scanTargetURL = targetURL
         self.target = app
         self.targetPID = app.processIdentifier
-        self.targetName = app.localizedName ?? app.bundleIdentifier ?? "App"
+        self.targetName = targetURL?.host ?? app.localizedName ?? app.bundleIdentifier ?? "App"
         self.sessionId = id
         self.interactions = []
         self.indexById = [:]
@@ -131,7 +162,9 @@ final class Recorder: ObservableObject {
         allowCapturesWhileStopping = wasRecording
         await drainOutstanding(timeout: 3.0)
         allowCapturesWhileStopping = false
-        let session = finalize()
+        let network = await self.network.finish(startedAt: clock.startedAtISO8601, durationMs: clock.nowMilliseconds())
+        let session = finalize(network: network)
+        self.network.offerRestore()
         state = .idle
         capturer = nil
         target = nil
@@ -153,7 +186,8 @@ final class Recorder: ObservableObject {
         scheduled.removeAll()
     }
 
-    private func finalize() -> LocalSession? {
+    /// `network` is nil when no capture ran (status `not_captured`).
+    private func finalize(network: [NetworkEvent]?) -> LocalSession? {
         let duration = clock.nowMilliseconds()
         let sortedFrames = frames.values.sorted { ($0.timestampMs, $0.id) < ($1.timestampMs, $1.id) }
         let known = Set(sortedFrames.map(\.id))
@@ -173,18 +207,22 @@ final class Recorder: ObservableObject {
         for file in (try? FileManager.default.contentsOfDirectory(atPath: framesDir.path)) ?? [] where !keptNames.contains(file) {
             try? FileManager.default.removeItem(at: framesDir.appendingPathComponent(file))
         }
-        let bundleId = target?.bundleIdentifier ?? "unknown"
-        let manifest = SessionManifest(
+        let bundleId = scanTargetURL?.host.map(AppGrouping.webBundleId) ?? target?.bundleIdentifier ?? "unknown"
+        var manifest = SessionManifest(
             id: sessionId,
             app: AppInfo(name: targetName ?? bundleId, bundleId: bundleId, pid: targetPID),
+            scanReport: scanReport,
+            scanTargetURL: scanTargetURL?.absoluteString,
             startedAt: clock.startedAtISO8601,
             durationMs: max(duration, (sortedFrames.last?.timestampMs ?? 0), (items.last?.timestampMs ?? 0)),
             interactions: items,
             frames: sortedFrames,
             network: [],
             networkStatus: .notCaptured,
+            networkNote: network == nil ? self.network.skipNote.map { String($0.prefix(SessionManifest.maxNetworkNote)) } : nil,
             redaction: Redaction(reviewed: false)
         )
+        if let network { manifest = NetworkEvidenceExport.merge(network, into: manifest) }
         let issues = ManifestValidator.validate(manifest, purpose: .local)
         if !issues.isEmpty {
             notice = "Saved, but the manifest has \(issues.count) validation issue(s): \(issues.first!)"
